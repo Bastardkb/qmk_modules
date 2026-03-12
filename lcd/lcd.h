@@ -19,10 +19,6 @@ void              update_layer_name(void);
 void              ui_init_button_mod_indicator(lv_obj_t *label);
 mod_button_pair_t ui_create_mod_button(lv_obj_t *cont, const char *text, bool force_new_track, uint8_t mod_mask);
 
-void event_screen_base_update_mods(lv_event_t *e);
-void event_screen_pointer_sniping_toggle(lv_event_t *e);
-void event_screen_pointer_scroll_toggle(lv_event_t *e);
-
 void update_theme_color(void);
 void update_dilemma_status(void);
 
@@ -38,3 +34,5 @@ ui_theme get_current_theme(void);
 
 void mouse_info_sync_handler(uint8_t in_buflen, const void* in_data, uint8_t out_buflen, void* out_data);
 void refresh_lcd_info(void);
+void cycle_theme(void);
+void init_display(void);

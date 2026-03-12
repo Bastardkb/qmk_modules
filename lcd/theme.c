@@ -1,3 +1,4 @@
+#include QMK_KEYBOARD_H
 #include "theme.h"
 
 LV_FONT_DECLARE(montserratbold14);
@@ -14,6 +15,7 @@ ui_theme terminal_theme;
 
 void init_themes(void) {
     default_theme = (ui_theme){
+        .change_colors_on_layer_change = true,
         .btn_normal =
             {
                 .font          = &montserratbold14,
@@ -47,8 +49,8 @@ void init_themes(void) {
             },
         .secondary_labels =
             {
-                .font = &montserratbold13,
-                .text_color    = lv_color_make(150, 150, 150),
+                .font       = &montserratbold13,
+                .text_color = lv_color_make(150, 150, 150),
             },
         .bar =
             {
@@ -120,7 +122,7 @@ void init_themes(void) {
         .secondary_labels =
             {
                 .font       = &dmsans13,
-                .text_color    = lv_color_make(150, 150, 150),
+                .text_color = lv_color_make(150, 150, 150),
             },
         .bar =
             {
@@ -271,4 +273,12 @@ void apply_theme_bar_background(lv_style_t *style, ui_theme_bar_background theme
     lv_style_set_radius(style, theme.border_radius);
     lv_style_set_border_width(style, theme.border_width);
     lv_obj_report_style_change(style);
+}
+
+void read_dilemma_theme_config_from_eeprom(dilemma_config_theme_t *config) {
+    config->raw = eeconfig_read_user() & 0xff;
+}
+
+void write_dilemma_theme_config_to_eeprom(dilemma_config_theme_t *config) {
+    eeconfig_update_user(config->raw);
 }

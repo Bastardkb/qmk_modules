@@ -73,6 +73,7 @@ typedef struct {
     uint16_t dpi;
     uint16_t s_dpi;
     uint8_t  layer;
+    uint8_t  current_theme_id;
 } dilemma_status_t;
 
 static dilemma_status_t g_dilemma_status_prev = {0};
@@ -81,11 +82,14 @@ static dilemma_status_t g_dilemma_status      = {0};
 const char *ui_layer_strings[] = {"BASE", "FUNCTION", "NAV", "MED/RGB", "POINTER", "NUM", "SYM"};
 
 // themes
+// TODO move those into theme.h and theme.c, declare here only themes as extern.
 extern ui_theme default_theme;
 extern ui_theme skeu_dark_theme;
 extern ui_theme terminal_theme;
-uint8_t         current_theme = 0;
-ui_theme       *themes[]      = {&default_theme, &skeu_dark_theme, &terminal_theme};
+ui_theme       *themes[] = {&default_theme, &skeu_dark_theme, &terminal_theme};
+
+// TODO move this out to themes.c/.h ?
+static dilemma_config_theme_t g_dilemma_config_theme_t = {0};
 
 painter_device_t        lcd;
 static painter_device_t surface;
@@ -104,7 +108,7 @@ lv_obj_t *ui_create_secondary_text(lv_obj_t *cont, const char *text, bool new_tr
 }
 
 ui_theme get_current_theme(void) {
-    return *themes[current_theme];
+    return *themes[g_dilemma_status.current_theme_id];
 }
 
 lv_obj_t *ui_create_progress_bar(lv_obj_t *cont, uint8_t flex) {
@@ -134,96 +138,102 @@ lv_obj_t *ui_create_line_separator(lv_obj_t *cont, uint8_t flex, uint8_t height)
     return bar;
 }
 
+void init_display(void) {
+    // Display timeout
+    wait_ms(LCD_WAIT_TIME);
+
+    lcd = qp_st7789_make_spi_device(LCD_WIDTH, LCD_HEIGHT, LCD_CS_PIN, LCD_DC_PIN, LCD_RST_PIN, LCD_SPI_DIVISOR, SPI_MODE);
+    qp_init(lcd, LCD_ROTATION);
+
+    surface = qp_make_rgb565_surface(LCD_WIDTH, LCD_HEIGHT, surface_buffer);
+    qp_init(surface, LCD_ROTATION);
+
+    // Display offset
+    qp_set_viewport_offsets(lcd, LCD_OFFSET_X, LCD_OFFSET_Y);
+
+    // if(qp_lvgl_attach(lcd)){
+    // TODO is this done automagically? add defines?
+    //    keyboard_post_init_lcd();
+    // }
+    qp_lvgl_attach(lcd);
+
+    // Power on display, fill with black
+    qp_power(lcd, 1);
+    qp_rect(lcd, 0, 0, 300, 300, HSV_BLACK, 1);
+    qp_flush(lcd);
+    ui_screen_base = lv_obj_create(NULL);
+
+    init_themes();
+    style_init_all();
+
+    lv_obj_t *cont = lv_obj_create(ui_screen_base);
+    lv_obj_set_size(cont, LCD_WIDTH, LCD_HEIGHT);
+    lv_obj_center(cont);
+    lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_ROW_WRAP);
+    lv_obj_add_style(cont, &ui_styles.flex_container, 0);
+
+    ui_button_layer = lv_btn_create(cont);
+    lv_obj_add_style(ui_button_layer, &ui_styles.layer_name, 0);
+    lv_obj_set_height(ui_button_layer, 33);
+    lv_obj_set_flex_grow(ui_button_layer, 1); // take all remaining space in line
+
+    // layer title
+    ui_label_layer = lv_label_create(ui_button_layer);
+    ui_init_layer_name(ui_label_layer);
+    lv_label_set_text(ui_label_layer, "LAYER: BASE");
+    lv_obj_center(ui_label_layer);
+
+    // mod buttons: SHIFT, ALT, CTRL, GUI
+    mod_buttons[0] = ui_create_mod_button(cont, "SHFT", true, MOD_MASK_SHIFT);
+    mod_buttons[1] = ui_create_mod_button(cont, "ALT", false, MOD_MASK_ALT);
+    mod_buttons[2] = ui_create_mod_button(cont, "CTRL", false, MOD_MASK_CTRL);
+    mod_buttons[3] = ui_create_mod_button(cont, "GUI", false, MOD_MASK_GUI);
+
+    // line separator
+    ui_line_1 = ui_create_line_separator(cont, 1, 3);
+
+    // display base layer screen upon init
+    lv_disp_load_scr(ui_screen_base);
+
+    // mouse special buttons
+    mouse_buttons[0] = ui_create_mod_button(cont, "SNIPE", true, 0);
+    mouse_buttons[1] = ui_create_mod_button(cont, "SCROLL", false, 0);
+
+    // sniping DPI widgets
+    ui_label_s_dpi        = ui_create_secondary_text(cont, "SNIPE DPI", true, 4);
+    ui_bar_s_dpi          = ui_create_progress_bar(cont, 4);
+    ui_label_s_dpi_number = ui_create_number_label(cont, 2);
+
+    // regular DPI widgets
+    ui_label_dpi        = ui_create_secondary_text(cont, "DPI", true, 2);
+    ui_bar_dpi          = ui_create_progress_bar(cont, 6);
+    ui_label_dpi_number = ui_create_number_label(cont, 2);
+
+    // line separator
+    ui_line_2 = ui_create_line_separator(cont, 1, 3);
+
+    // rgb widgets
+    ui_label_rgb        = ui_create_secondary_text(cont, "RGB", true, 2);
+    ui_bar_rgb          = ui_create_progress_bar(cont, 6);
+    ui_label_rgb_number = ui_create_number_label(cont, 2);
+
+    ui_label_rgb_effect = ui_create_secondary_text(cont, "effect...", true, 1);
+
+    // theme and backgrounds
+    lv_disp_t  *dispp = lv_disp_get_default();
+    lv_theme_t *theme = lv_theme_default_init(dispp, lv_palette_main(BK_PALETTE), lv_palette_main(BK_PALETTE), true, LV_FONT_DEFAULT);
+    lv_disp_set_theme(dispp, theme);
+    lv_obj_set_style_bg_color(cont, lv_color_black(), LV_PART_MAIN);
+
+    // sync mouse data across halves
+    transaction_register_rpc(RPC_ID_MOUSE_SYNC, mouse_info_sync_handler);
+}
+
 void keyboard_post_init_lcd(void) {
+    read_dilemma_theme_config_from_eeprom(&g_dilemma_config_theme_t);
+    g_dilemma_status.current_theme_id = g_dilemma_config_theme_t.current_theme_id;
     if (is_keyboard_left()) {
-        // Display timeout
-        wait_ms(LCD_WAIT_TIME);
-
-        lcd = qp_st7789_make_spi_device(LCD_WIDTH, LCD_HEIGHT, LCD_CS_PIN, LCD_DC_PIN, LCD_RST_PIN, LCD_SPI_DIVISOR, SPI_MODE);
-        qp_init(lcd, LCD_ROTATION);
-
-        surface = qp_make_rgb565_surface(LCD_WIDTH, LCD_HEIGHT, surface_buffer);
-        qp_init(surface, LCD_ROTATION);
-
-        // Display offset
-        qp_set_viewport_offsets(lcd, LCD_OFFSET_X, LCD_OFFSET_Y);
-
-        // if(qp_lvgl_attach(lcd)){
-        // TODO is this done automagically? add defines?
-        //    keyboard_post_init_lcd();
-        // }
-        qp_lvgl_attach(lcd);
-
-        // Power on display, fill with black
-        qp_power(lcd, 1);
-        qp_rect(lcd, 0, 0, 300, 300, HSV_BLACK, 1);
-        qp_flush(lcd);
-        ui_screen_base = lv_obj_create(NULL);
-
-        init_themes();
-        style_init_all();
-
-        lv_obj_t *cont = lv_obj_create(ui_screen_base);
-        lv_obj_set_size(cont, LCD_WIDTH, LCD_HEIGHT);
-        lv_obj_center(cont);
-        lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_ROW_WRAP);
-        lv_obj_add_style(cont, &ui_styles.flex_container, 0);
-
-        ui_button_layer = lv_btn_create(cont);
-        lv_obj_add_style(ui_button_layer, &ui_styles.layer_name, 0);
-        lv_obj_set_height(ui_button_layer, 33);
-        lv_obj_set_flex_grow(ui_button_layer, 1); // take all remaining space in line
-
-        // layer title
-        ui_label_layer = lv_label_create(ui_button_layer);
-        ui_init_layer_name(ui_label_layer);
-        lv_label_set_text(ui_label_layer, "LAYER: BASE");
-        lv_obj_center(ui_label_layer);
-
-        // mod buttons: SHIFT, ALT, CTRL, GUI
-        mod_buttons[0] = ui_create_mod_button(cont, "SHFT", true, MOD_MASK_SHIFT);
-        mod_buttons[1] = ui_create_mod_button(cont, "ALT", false, MOD_MASK_ALT);
-        mod_buttons[2] = ui_create_mod_button(cont, "CTRL", false, MOD_MASK_CTRL);
-        mod_buttons[3] = ui_create_mod_button(cont, "GUI", false, MOD_MASK_GUI);
-
-        // line separator
-        ui_line_1 = ui_create_line_separator(cont, 1, 3);
-
-        // display base layer screen upon init
-        lv_disp_load_scr(ui_screen_base);
-
-        // mouse special buttons
-        mouse_buttons[0] = ui_create_mod_button(cont, "SNIPE", true, 0);
-        mouse_buttons[1] = ui_create_mod_button(cont, "SCROLL", false, 0);
-
-        // sniping DPI widgets
-        ui_label_s_dpi        = ui_create_secondary_text(cont, "SNIPE DPI", true, 4);
-        ui_bar_s_dpi          = ui_create_progress_bar(cont, 4);
-        ui_label_s_dpi_number = ui_create_number_label(cont, 2);
-
-        // regular DPI widgets
-        ui_label_dpi        = ui_create_secondary_text(cont, "DPI", true, 2);
-        ui_bar_dpi          = ui_create_progress_bar(cont, 6);
-        ui_label_dpi_number = ui_create_number_label(cont, 2);
-
-        // line separator
-        ui_line_2 = ui_create_line_separator(cont, 1, 3);
-
-        // rgb widgets
-        ui_label_rgb        = ui_create_secondary_text(cont, "RGB", true, 2);
-        ui_bar_rgb          = ui_create_progress_bar(cont, 6);
-        ui_label_rgb_number = ui_create_number_label(cont, 2);
-
-        ui_label_rgb_effect = ui_create_secondary_text(cont, "effect...", true, 1);
-
-        // theme and backgrounds
-        lv_disp_t  *dispp = lv_disp_get_default();
-        lv_theme_t *theme = lv_theme_default_init(dispp, lv_palette_main(BK_PALETTE), lv_palette_main(BK_PALETTE), true, LV_FONT_DEFAULT);
-        lv_disp_set_theme(dispp, theme);
-        lv_obj_set_style_bg_color(cont, lv_color_black(), LV_PART_MAIN);
-
-        // sync mouse data across halves
-        transaction_register_rpc(RPC_ID_MOUSE_SYNC, mouse_info_sync_handler);
+        init_display();
     }
 }
 
@@ -294,54 +304,49 @@ mod_button_pair_t ui_create_mod_button(lv_obj_t *cont, const char *text, bool fo
     return b;
 }
 
-// TODO colors....
+// TODO get colors based on real layer colors, instead of hardcoding them
 void update_theme_color(void) {
-    // if (g_dilemma_status.layer != g_dilemma_status_prev.layer) {
-    //     HSV hsv;
-    //     switch (g_dilemma_status.layer) {
-    //         case 0:
-    //         default:
-    //             hsv.h = 218;
-    //             hsv.s = 70;
-    //             hsv.v = 93;
-    //             break;
-    //         case 1:
-    //             hsv.h = 250;
-    //             hsv.s = 100;
-    //             hsv.v = 80;
-    //             break;
-    //         case 2:
-    //             hsv.h = 35;
-    //             hsv.s = 100;
-    //             hsv.v = 80;
-    //             break;
-    //         case 3:
-    //             hsv.h = 195;
-    //             hsv.s = 30;
-    //             hsv.v = 80;
-    //             break;
-    //     }
+    if (get_current_theme().change_colors_on_layer_change) {
+        if (g_dilemma_status.layer != g_dilemma_status_prev.layer) {
+            HSV hsv;
+            switch (g_dilemma_status.layer) {
+                case 0:
+                default:
+                    hsv.h = 218;
+                    hsv.s = 70;
+                    hsv.v = 93;
+                    break;
+                case 1:
+                    hsv.h = 250;
+                    hsv.s = 100;
+                    hsv.v = 80;
+                    break;
+                case 2:
+                    hsv.h = 35;
+                    hsv.s = 100;
+                    hsv.v = 80;
+                    break;
+                case 3:
+                    hsv.h = 195;
+                    hsv.s = 30;
+                    hsv.v = 80;
+                    break;
+            }
 
-    //     lv_style_set_bg_color(&ui_styles.mod_btn_pressed, lv_color_hsv_to_rgb(hsv.h, hsv.s, hsv.v));
-    //     lv_obj_report_style_change(&ui_styles.mod_btn_pressed);
-    //     lv_style_set_bg_color(&ui_styles.bar, lv_color_hsv_to_rgb(hsv.h, hsv.s, hsv.v));
-    //     lv_obj_report_style_change(&ui_styles.bar);
-    // }
+            lv_style_set_bg_color(&ui_styles.mod_btn_pressed, lv_color_hsv_to_rgb(hsv.h, hsv.s, hsv.v));
+            lv_obj_report_style_change(&ui_styles.mod_btn_pressed);
+            lv_style_set_bg_color(&ui_styles.bar, lv_color_hsv_to_rgb(hsv.h, hsv.s, hsv.v));
+            lv_obj_report_style_change(&ui_styles.bar);
+        }
+    }
 }
 
 void ui_init_button_mod_indicator(lv_obj_t *button) {
     lv_obj_add_style(button, &ui_styles.mod_btn, 0);
     lv_obj_add_style(button, &ui_styles.mod_btn_pressed, LV_STATE_PRESSED);
-    lv_obj_add_event_cb(button, event_screen_base_update_mods, LV_EVENT_ALL, NULL);
     lv_obj_set_height(button, 33);
     lv_obj_set_flex_grow(button, 1);
 }
-
-void event_screen_pointer_sniping_toggle(lv_event_t *e) {}
-void event_screen_pointer_scroll_toggle(lv_event_t *e) {}
-
-// TODO what is this?
-void event_screen_base_update_mods(lv_event_t *e) {}
 
 void refresh_lcd_info(void) {
     update_layer_name();
@@ -415,6 +420,7 @@ void update_dilemma_status(void) {
     g_dilemma_status.rgb_enabled     = rgb_matrix_is_enabled();
     g_dilemma_status.rgb_effect_mode = rgb_matrix_get_mode();
     g_dilemma_status.rgb_val         = rgb_matrix_get_val();
+    // current theme: already updated. TODO move it here?
 }
 
 void update_mods(void) {
@@ -496,14 +502,21 @@ bool process_record_lcd(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
         case LCD_MODULE_CHANGE_THEME:
             if (record->event.pressed) {
-                current_theme = (current_theme + 1) % (sizeof(themes) / sizeof(ui_theme *));
-                update_styles(get_current_theme());
+                cycle_theme();
                 housekeeping_task_lcd();
                 qp_flush(lcd);
             }
             break;
     }
     return true;
+}
+
+// TODO move this to theme.h?3
+void cycle_theme(void) {
+    g_dilemma_status.current_theme_id = (g_dilemma_status.current_theme_id + 1) % (sizeof(themes) / sizeof(ui_theme *));
+    update_styles(get_current_theme());
+    g_dilemma_config_theme_t.current_theme_id = g_dilemma_status.current_theme_id;
+    write_dilemma_theme_config_to_eeprom(&g_dilemma_config_theme_t);
 }
 
 const char *rgb_matrix_get_effect_name(void) {
@@ -530,6 +543,11 @@ const char *rgb_matrix_get_effect_name(void) {
 // called by primary, executed by secondary
 void mouse_info_sync_handler(uint8_t initiator2target_buffer_size, const void *initiator2target_buffer, uint8_t target2initiator_buffer_size, void *target2initiator_buffer) {
     if (initiator2target_buffer_size == sizeof(g_dilemma_status)) {
+        if (g_dilemma_status_prev.current_theme_id != g_dilemma_status.current_theme_id) {
+            update_styles(get_current_theme());
+            g_dilemma_config_theme_t.current_theme_id = g_dilemma_status.current_theme_id;
+            write_dilemma_theme_config_to_eeprom(&g_dilemma_config_theme_t);
+        }
         g_dilemma_status_prev = g_dilemma_status;
         g_dilemma_status      = *(const dilemma_status_t *)initiator2target_buffer;
         refresh_lcd_info();
