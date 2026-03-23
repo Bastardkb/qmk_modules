@@ -5,7 +5,7 @@
     "keycodes": [
         {
             "key": "LCD_MODULE_CHANGE_THEME",
-            "aliases": ["LCD_THEME"]
+            "aliases": ["LCDTH"]
         }
     ]
 }

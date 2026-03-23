@@ -5,6 +5,7 @@ QUANTUM_PAINTER_LVGL_INTEGRATION = yes
 ST7789 = true
 
 SRC += theme.c
+SRC += ui_elements.c
 
 # LVGL fonts
 SRC += montserratbold14.c
