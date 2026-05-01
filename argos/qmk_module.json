@@ -1,0 +1,9 @@
+{
+    "module_name": "Argos",
+    "maintainer": "Bastard Keyboards",
+    "license": "GPL-2.0-or-later",
+    "features": {
+        "via": true,
+        "deferred_exec": true
+    }
+}
