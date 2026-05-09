@@ -82,8 +82,10 @@ void keyboard_post_init_argos(void) {
         // this is our first load ever
         argos_combos_copy_from_QMK();
         argos_config.has_copied_qmk_config = true;
-        argos_config.themeId = 13; // default to dark theme
+        argos_config.themeId = 16; // default to dark theme
         argos_config.has_displayed_welcome_message = false;
+        argos_config.global_tapping_term = TAPPING_TERM;
+        argos_config.global_combo_term = COMBO_TERM;
         argos_write_eeprom(ARGOS_OFFSET_CONFIG, &argos_config,
                            sizeof(argos_config));
     }
@@ -118,6 +120,10 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
         command_data[7] = QMK_KEYCODES_VERSION_COMPATIBLE_1;
         command_data[8] = QMK_KEYCODES_VERSION_COMPATIBLE_2;
         command_data[9] = argos_config.has_displayed_welcome_message;
+        command_data[10] = (argos_config.global_tapping_term >> 8) & 0xFF;
+        command_data[11] = argos_config.global_tapping_term & 0xFF;
+        command_data[12] = (argos_config.global_combo_term >> 8) & 0xFF;
+        command_data[13] = argos_config.global_combo_term & 0xFF;
         send_data = true;
         break;
     }
@@ -162,6 +168,8 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
                 command_data[3 + i * 2] | (command_data[4 + i * 2] << 8);
             argos_combo_set_keycode(combo_index, key, i);
         }
+        // reload combo from eeprom
+        argos_combo_load_from_eeprom(combo_index);
         send_data = true; // ack
         break;
     }
@@ -171,6 +179,22 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
         command_data[0] = argos_config.themeId;
         send_data = true;
         printf("Reading theme id: %d\n", argos_config.themeId);
+        break;
+    }
+
+    case argos_id_set_global_tapping_term: {
+        argos_config.global_tapping_term = command_data[0] << 8| command_data[1];
+        argos_write_eeprom(ARGOS_OFFSET_CONFIG, &argos_config,
+                           sizeof(argos_config));
+        send_data = true;
+        break;
+    }
+    
+    case argos_id_set_global_combo_term: {
+        argos_config.global_combo_term = command_data[0] << 8| command_data[1];
+        argos_write_eeprom(ARGOS_OFFSET_CONFIG, &argos_config,
+                           sizeof(argos_config));
+        send_data = true;
         break;
     }
 
@@ -419,4 +443,14 @@ void argos_keycode_tap(uint16_t keycode) {
     argos_keycode_down(keycode);
     wait_ms(ARGOS_TAP_CODE_DELAY);
     argos_keycode_up(keycode);
+}
+
+// override tapping term
+uint16_t get_tapping_term(uint16_t keycode, keyrecord_t *record) {
+    return argos_config.global_tapping_term;
+}
+
+// override combo term
+uint16_t get_combo_term(uint16_t combo_index, combo_t *combo) {
+    return argos_config.global_combo_term;
 }

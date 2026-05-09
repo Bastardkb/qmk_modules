@@ -35,6 +35,8 @@ enum argos_command_id {
     argos_id_set_combo = 0x0E,
     argos_id_capture_all_keycodes = 0x0F,
     argos_id_set_welcome_message_displayed = 0x10,
+    argos_id_set_global_tapping_term = 0x11,
+    argos_id_set_global_combo_term = 0x12,
 };
 
 // At the moment, we only support trackpads and trackballs (for Bastard Keyboards)
@@ -63,8 +65,10 @@ typedef struct PACKED {
     bool has_copied_qmk_config : 1;
     uint8_t themeId;
     bool has_displayed_welcome_message : 1;
+    uint16_t global_tapping_term; // in ms
+    uint16_t global_combo_term; // in ms
 } argos_config_t;
-_Static_assert(sizeof(argos_config_t) <= 3, "Invalid size for argos_config_t");
+_Static_assert(sizeof(argos_config_t) <= 7, "Invalid size for argos_config_t");
 
 #define ARGOS_TAPPING_TERM 175
 #define ARGOS_TAP_CODE_DELAY 10
