@@ -46,9 +46,13 @@ void build_pointing_device_info_command_data(uint8_t **command_data) {
     (*command_data)[14] = 4;
 
 #endif
-#ifdef POINTING_DEVICE_DRIVER_digitizer // Dilemma v3, todo test procyon?
-    // TODO move this to other file?...
+#ifdef POINTING_DEVICE_DRIVER_digitizer // Dilemma v3 / procyon
     (*command_data)[0] = pointing_device_type_trackpad_procyon;
+#endif
+#ifdef CIRQUE_PINNACLE_DIAMETER_MM // Dilemma v2 / cirque
+    (*command_data)[0] = pointing_device_type_trackpad_cirque;
+#endif
+#if defined(POINTING_DEVICE_DRIVER_digitizer) || defined(CIRQUE_PINNACLE_DIAMETER_MM) // dilemma v2/v3
     // pointing dpi is up to 400+16*200 = 3600, 2 bytes
     (*command_data)[1] = dilemma_get_pointer_default_dpi() & 0xFF;
     (*command_data)[2] = (dilemma_get_pointer_default_dpi() >> 8) & 0xFF;
@@ -97,7 +101,7 @@ void argos_set_dpi(uint8_t *command_data) {
         charybdis_cycle_pointer_default_dpi(forward);
     }
 #endif
-#ifdef POINTING_DEVICE_DRIVER_digitizer
+#if defined(POINTING_DEVICE_DRIVER_digitizer) || defined(CIRQUE_PINNACLE_DIAMETER_MM) // dilemma v2/v3
     // new dpi is on 2 bytes:
     uint16_t new_dpi = command_data[0] | (command_data[1] << 8);
     // get the old DPI:

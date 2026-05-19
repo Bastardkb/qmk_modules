@@ -124,6 +124,11 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
         command_data[11] = argos_config.global_tapping_term & 0xFF;
         command_data[12] = (argos_config.global_combo_term >> 8) & 0xFF;
         command_data[13] = argos_config.global_combo_term & 0xFF;
+#ifdef POINTING_DEVICE_LEFT
+        command_data[14] = 1; // pointing device on left
+#else
+        command_data[14] = 0; // pointing device on right
+#endif
         send_data = true;
         break;
     }

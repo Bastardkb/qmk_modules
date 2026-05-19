@@ -44,6 +44,7 @@ enum pointing_device_type {
     pointing_device_type_unknown = 0,
     pointing_device_type_trackpad_procyon = 1,
     pointing_device_type_trackball = 2,
+    pointing_device_type_trackpad_cirque = 3,
 };
 
 #define ARGOS_COMBO_ENTRIES 16
