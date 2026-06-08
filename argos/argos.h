@@ -9,7 +9,7 @@
 #include "util.h"
 
 // Argos protocol version
-#define ARGOS_PROTOCOL_VERSION 0x0001
+#define ARGOS_PROTOCOL_VERSION 0x0002
 #define ARGOS_CMD_PREFIX 0x90 // hopefully something that won't conflict with VIA
 #define QMK_KEYCODES_VERSION_COMPATIBLE_0 0
 #define QMK_KEYCODES_VERSION_COMPATIBLE_1 0
@@ -27,8 +27,8 @@ enum argos_command_id {
     argos_id_set_theme_id = 0x06,
     argos_id_get_tap_dance = 0x07,
     argos_id_set_tap_dance = 0x08,
-    argos_id_capture_tap_dance_key = 0x09,
-    argos_id_delete_tap_dance_key = 0x0A,
+    argos_id_capture_tap_dance_key = 0x09, // legacy, not used anymore
+    argos_id_delete_tap_dance_key = 0x0A, // legacy, not used anymore
     argos_id_set_dpi = 0x0B,
     argos_id_get_pointing_device_info = 0x0C,
     argos_id_set_sniping_dpi = 0x0D,
@@ -37,6 +37,7 @@ enum argos_command_id {
     argos_id_set_welcome_message_displayed = 0x10,
     argos_id_set_global_tapping_term = 0x11,
     argos_id_set_global_combo_term = 0x12,
+    argos_id_set_tap_dance_keycode = 0x13,
 };
 
 // At the moment, we only support trackpads and trackballs (for Bastard Keyboards)

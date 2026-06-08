@@ -292,6 +292,7 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
         break;
     }
 
+    // TODO delete this
     case argos_id_capture_tap_dance_key: {
         // This command is used to capture the next key press and return it in
         // the response. It is meant to be used when setting up a tap dance, to
@@ -302,9 +303,100 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
         break;
     }
 
-    case argos_id_delete_tap_dance_key: {
-        uint8_t index = command_data[0];
-        argos_tap_dance_reset_capturing_tap_dance_key_index(index);
+    // set a specific key in a tap dance.
+    // we don't return any data to specify if we succeeded or not, because the webapp will reload the tap dance directly.
+    case argos_id_set_tap_dance_keycode: {
+        const uint8_t layer  = command_data[0];
+        const uint8_t row   = command_data[1];
+        const uint8_t col   = command_data[2];
+        const uint16_t keycode = (command_data[3] << 8) | command_data[4];
+        const uint8_t tap_dance_action_index = command_data[5];
+        printf("Setting tap dance index %d key to keycode %d\n", tap_dance_action_index, keycode);
+        printf("At position layer %d, row %d, col %d\n", layer, row, col);
+
+
+        // TODO: move all this to argos_tapdance.c
+        // read the key at the position, is it already a tap dance?
+        const uint16_t current_keycode = dynamic_keymap_get_keycode(layer, row, col);
+        // range for tap dances is 0x5700 to 0x57FF
+        bool is_tap_dance = current_keycode >= QK_TAP_DANCE && current_keycode < QK_TAP_DANCE + ARGOS_TAP_DANCE_ENTRIES;
+        uint8_t td_index = 0;
+        uint16_t new_keycode_td = 0;
+        if (is_tap_dance) {
+            // find the tap dance number: based on the keycode number.
+            td_index = current_keycode - QK_TAP_DANCE;
+            printf("Position is already a tap dance at index %d, modifying it\n", td_index);
+            // reassign the appropriate keycode directly
+            argos_tap_dance_set_keycode(td_index, keycode, tap_dance_action_index);
+            new_keycode_td = current_keycode; // no need to change the keycode, it's already a tap dance
+        }
+        else{
+            printf("Position is not a tap dance, assigning a new tap dance to it\n");
+            // if it's not a tap dance yet....
+            // first we need to find an available tap dance entry. We have up to 256 available.
+            argos_td_entry_t *entry;
+            for(uint8_t i = 0; i < ARGOS_TAP_DANCE_ENTRIES; i++){
+                // argos_tap_dance_read_eeprom(i, &entry);
+                entry = argos_tap_dance_get(i);
+
+                if(entry->on_tap == 0 && entry->on_hold == 0 && entry->on_double_tap == 0 && entry->on_tap_hold == 0){
+                    // this tap dance is empty, we can use it
+                    td_index = i;
+                    // assign tap dance keycode to the position on the keymap
+                    printf("Found empty tap dance at index %d, assigning it to the position\n", i);
+                    break;
+                }
+            }
+
+            // modify the key in the keymap to be a tap dance with the right index
+            new_keycode_td = QK_TAP_DANCE + td_index;
+            dynamic_keymap_set_keycode(layer, row, col, new_keycode_td);
+
+            // now we're sure that we have a tap dance and that it's assigned properly. time to modify it        
+            // if we are assigning a single tap, we can directly modify it
+            if(tap_dance_action_index == 0){
+                argos_tap_dance_set_keycode(td_index, keycode, tap_dance_action_index);
+            }
+            // if we are assigning something else than single tap, then store the previous keycode as the single tap action
+            else{
+                printf("Assigning non-single-tap action, setting single tap action to previous keycode at this position\n");
+                printf("Previous key at this position is %d\n", current_keycode);
+                // assign keycode and save in eeprom
+                argos_tap_dance_set_keycode(td_index, current_keycode, 0);
+                argos_tap_dance_set_keycode(td_index, keycode, tap_dance_action_index);
+            }
+        }
+
+        // now, we need to test for a specific case: we might have had a deletion.
+        argos_td_entry_t* updated_entry = argos_tap_dance_get(td_index);
+        if(keycode == 0){
+            // that's fine, we set everything up already for the tap dance.
+            // however, if we deleted everything except the singe tap then we need to turn it back to a normal keycode.
+            if(updated_entry->on_hold == 0 && updated_entry->on_double_tap == 0 && updated_entry->on_tap_hold == 0){
+                printf("Only single tap action left and it's deleted, turning tap dance back to normal keycode\n");
+                dynamic_keymap_set_keycode(layer, row, col, updated_entry->on_tap);
+                // return the keycode to the webapp
+                new_keycode_td = updated_entry->on_tap;
+                // clear the tap dance single tap entry as it's no longer used
+                argos_tap_dance_set_keycode(td_index, 0, 0);
+            }
+        }
+
+        // return the tap dance index that was modified/created, so the webapp can keep track of it
+        // otherwise, the webapp might not know the number of the new tap dance created.
+        command_data[0] = td_index; 
+        command_data[1] = (new_keycode_td >> 8) & 0xFF;
+        command_data[2] = new_keycode_td & 0xFF;
+        command_data[3] = (updated_entry->on_tap >> 8) & 0xFF;
+        command_data[4] = updated_entry->on_tap & 0xFF;
+        command_data[5] = (updated_entry->on_hold >> 8) & 0xFF;
+        command_data[6] = updated_entry->on_hold & 0xFF;
+        command_data[7] = (updated_entry->on_double_tap >> 8) & 0xFF;
+        command_data[8] = updated_entry->on_double_tap & 0xFF;
+        command_data[9] = (updated_entry->on_tap_hold >> 8) & 0xFF;
+        command_data[10] = updated_entry->on_tap_hold & 0xFF;
+        printf("data: %d, %d, %d, %d, %d, %d, %d\n", data[0], data[1], data[2], data[3], data[4], data[5], length);
+        send_data = true; 
         break;
     }
 
