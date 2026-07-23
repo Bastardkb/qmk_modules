@@ -6,13 +6,7 @@
 #include "argos.h"
 #include "argos_combo.h"
 #include "argos_tapdance.h"
-
-#ifdef POINTING_DEVICE_DRIVER_pmw3360
-#include "charybdis.h"
-#endif
-#ifdef POINTING_DEVICE_DRIVER_digitizer // TODO dilemma v2 / cirque
-#include "dilemma.h"
-#endif
+#include "argos_rgb.h"
 
 #include "eeconfig.h"
 #include "eeprom.h"
@@ -30,6 +24,10 @@
 #include <time.h>
 
 #include "argos_pointer.h"
+
+#if BK_HAS_POINTING_DEVICE
+#include "bk_pointing_device.h"
+#endif
 
 ASSERT_COMMUNITY_MODULES_MIN_API_VERSION(1, 0, 0);
 
@@ -68,14 +66,11 @@ __attribute__((weak)) void argos_write_eeprom(uint16_t offset, const void *buf,
 
 /*
     To make migrating from QMK as easy as possible, on first load we copy
-    over the combos.
-    QMK does not store combos in eeprom, so we have to load them using
-   combo_get_raw and then manually copy each one into eeprom through our custom
-   data structure
-    TODO other things, not only combos
+    over the combos. QMK does not store combos in eeprom, so we have to load them using
+    combo_get_raw and then manually copy each one into eeprom through our custom
+    data structure
 */
 void keyboard_post_init_argos(void) {
-
     // Read configuration from eeprom
     argos_read_eeprom(ARGOS_OFFSET_CONFIG, &argos_config, sizeof(argos_config));
     if (!argos_config.has_copied_qmk_config) {
@@ -88,10 +83,15 @@ void keyboard_post_init_argos(void) {
         argos_config.global_combo_term = COMBO_TERM;
         argos_write_eeprom(ARGOS_OFFSET_CONFIG, &argos_config,
                            sizeof(argos_config));
+        argos_rgb_init();
     }
     argos_combos_load_from_eeprom();
     argos_tap_dances_load_from_eeprom();
     argos_reload_tap_dances();
+    argos_rgb_load_from_eeprom();
+
+    // for rgb sync, needed for propagating changes
+    transaction_register_rpc(RPC_ID_RGB_SYNC, rgb_sync_handler);
 }
 
 bool argos_handle_command(uint8_t *data, uint8_t length) {
@@ -134,7 +134,6 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
     }
 
     case argos_id_set_welcome_message_displayed: {
-        printf("Setting welcome message displayed to %d\n", command_data[0]);
         argos_config.has_displayed_welcome_message = command_data[0];
         argos_write_eeprom(ARGOS_OFFSET_CONFIG, &argos_config,
                            sizeof(argos_config));
@@ -161,10 +160,6 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
     }
 
     case argos_id_set_combo: {
-        printf("Setting combo\n");
-        printf("Combo index: %d\n", command_data[0]);
-        printf("Keycode: %d\n", command_data[1] | (command_data[2] << 8));
-        printf("Amount of keys: %d\n", ARGOS_KEYS_PER_COMBO);
         uint8_t combo_index = command_data[0];
         uint16_t keycode = command_data[1] | (command_data[2] << 8);
         argos_combo_set_keycode(combo_index, keycode, 0);
@@ -176,14 +171,6 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
         // reload combo from eeprom
         argos_combo_load_from_eeprom(combo_index);
         send_data = true; // ack
-        break;
-    }
-
-    // TODO : delete this, we already load it in argos_id_get_kb_info
-    case argos_id_get_theme_id: {
-        command_data[0] = argos_config.themeId;
-        send_data = true;
-        printf("Reading theme id: %d\n", argos_config.themeId);
         break;
     }
 
@@ -203,7 +190,6 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
         break;
     }
 
-    // TODO : with the whole config?
     case argos_id_set_theme_id: {
         argos_config.themeId = command_data[0];
         argos_write_eeprom(ARGOS_OFFSET_CONFIG, &argos_config,
@@ -217,10 +203,8 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
         uint8_t index = command_data[0];
         argos_td_entry_t entry = {0};
         // TODO: is it really necessary to read from the eeprom here?
-        // can't we just have an array of tap dances?
+        // can't we just read from the tap dance array directly?
         argos_tap_dance_read_eeprom(index, &entry);
-        // TODO send the data back?
-        // memcpy(command_data, &entry, sizeof(argos_td_entry_t));
         command_data[1] = entry.on_tap & 0xFF;
         command_data[2] = (entry.on_tap >> 8) & 0xFF;
         command_data[3] = entry.on_hold & 0xFF;
@@ -241,11 +225,9 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
         // tab.
         uint8_t new_state = command_data[0];
         if (new_state) {
-            printf("Starting to capture all keycodes\n");
             capturing_all_keycodes = true;
         } else {
             capturing_all_keycodes = false;
-            printf("Stopping to capture all keycodes\n");
         }
         // we do not ACK, the ACK will be in process_records_argos_capture_all_keycodes
         break;
@@ -262,17 +244,15 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
         break;
     }
 
-    // TODO manage custom tapping terms?
     case argos_id_get_combo: {
         uint8_t combo_index = command_data[0];
         if (combo_index >= ARGOS_COMBO_ENTRIES)
             break; // invalid index
         combo_t combo = argos_combo_get(combo_index);
-        // TODO fix check combo exists..
         command_data[1] = !combo.disabled;
         command_data[2] = combo.keycode & 0xFF;
         command_data[3] = (combo.keycode >> 8) & 0xFF;
-        // data 4 and 5 reserved for custom tapping term later
+        // data 4 and 5 reserved for custom tapping term
         for (int i = 0; i < ARGOS_KEYS_PER_COMBO; i++) {
             uint16_t key = combo.keys[i];
             command_data[6 + i * 2] = key & 0xFF;
@@ -283,23 +263,7 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
     }
 
     case argos_id_capture_combo_key: {
-        // This command is used to capture the next key press and return it in
-        // the response. It is meant to be used when setting up a combo, to
-        // easily capture the keycode of each key in the combo. We will also
-        // process the assignment of the captured key directly, without having
-        // to process another HID message.
         argos_combo_listen_for_key(command_data);
-        break;
-    }
-
-    // TODO delete this
-    case argos_id_capture_tap_dance_key: {
-        // This command is used to capture the next key press and return it in
-        // the response. It is meant to be used when setting up a tap dance, to
-        // easily capture the keycode of each key in the tap dance. We will also
-        // process the assignment of the captured key directly, without having
-        // to process another HID message.
-        argos_tap_dance_listen_for_key(command_data);
         break;
     }
 
@@ -311,9 +275,6 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
         const uint8_t col   = command_data[2];
         const uint16_t keycode = (command_data[3] << 8) | command_data[4];
         const uint8_t tap_dance_action_index = command_data[5];
-        printf("Setting tap dance index %d key to keycode %d\n", tap_dance_action_index, keycode);
-        printf("At position layer %d, row %d, col %d\n", layer, row, col);
-
 
         // TODO: move all this to argos_tapdance.c
         // read the key at the position, is it already a tap dance?
@@ -325,13 +286,11 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
         if (is_tap_dance) {
             // find the tap dance number: based on the keycode number.
             td_index = current_keycode - QK_TAP_DANCE;
-            printf("Position is already a tap dance at index %d, modifying it\n", td_index);
             // reassign the appropriate keycode directly
             argos_tap_dance_set_keycode(td_index, keycode, tap_dance_action_index);
             new_keycode_td = current_keycode; // no need to change the keycode, it's already a tap dance
         }
         else{
-            printf("Position is not a tap dance, assigning a new tap dance to it\n");
             // if it's not a tap dance yet....
             // first we need to find an available tap dance entry. We have up to 256 available.
             argos_td_entry_t *entry;
@@ -343,7 +302,6 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
                     // this tap dance is empty, we can use it
                     td_index = i;
                     // assign tap dance keycode to the position on the keymap
-                    printf("Found empty tap dance at index %d, assigning it to the position\n", i);
                     break;
                 }
             }
@@ -359,8 +317,6 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
             }
             // if we are assigning something else than single tap, then store the previous keycode as the single tap action
             else{
-                printf("Assigning non-single-tap action, setting single tap action to previous keycode at this position\n");
-                printf("Previous key at this position is %d\n", current_keycode);
                 // assign keycode and save in eeprom
                 argos_tap_dance_set_keycode(td_index, current_keycode, 0);
                 argos_tap_dance_set_keycode(td_index, keycode, tap_dance_action_index);
@@ -373,7 +329,6 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
             // that's fine, we set everything up already for the tap dance.
             // however, if we deleted everything except the singe tap then we need to turn it back to a normal keycode.
             if(updated_entry->on_hold == 0 && updated_entry->on_double_tap == 0 && updated_entry->on_tap_hold == 0){
-                printf("Only single tap action left and it's deleted, turning tap dance back to normal keycode\n");
                 dynamic_keymap_set_keycode(layer, row, col, updated_entry->on_tap);
                 // return the keycode to the webapp
                 new_keycode_td = updated_entry->on_tap;
@@ -395,15 +350,84 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
         command_data[8] = updated_entry->on_double_tap & 0xFF;
         command_data[9] = (updated_entry->on_tap_hold >> 8) & 0xFF;
         command_data[10] = updated_entry->on_tap_hold & 0xFF;
-        printf("data: %d, %d, %d, %d, %d, %d, %d\n", data[0], data[1], data[2], data[3], data[4], data[5], length);
         send_data = true; 
         break;
     }
 
-    // TODO
     case argos_id_delete_combo_key: {
         uint8_t key_index = command_data[0];
         argos_combo_reset_capturing_combo_key_index(key_index);
+        break;
+    }
+
+    case argos_id_get_rgb_matrix_led_at_position: {
+        send_data = true;
+        uint8_t layer = command_data[0];
+        uint8_t index = command_data[1];
+        uint8_t offset = command_data[2];
+        argos_rgb_t entry = {0};
+        argos_rgb_get_led_at_position(&entry, layer, index, offset);
+        command_data[0] = entry.r;
+        command_data[1] = entry.g;
+        command_data[2] = entry.b;
+        command_data[3] = entry.passthrough;
+        command_data[4] = entry.on;
+        command_data[5] = entry.custom;
+        break;
+    }
+
+    case argos_id_set_rgb_matrix_led_at_position: {
+        send_data = true; // ack
+        uint8_t led_layer = command_data[0];
+        uint8_t led_row = command_data[1]; // legacy
+        uint8_t led_col = command_data[2]; // legacy
+        uint8_t r = command_data[3]; 
+        uint8_t g = command_data[4];
+        uint8_t b = command_data[5];
+        bool passthrough = command_data[6];
+        bool on = command_data[7];
+        bool custom = command_data[8];
+        uint8_t offset = command_data[9];
+        uint8_t index = command_data[10];
+        argos_rgb_set_led_at_position(led_layer, led_row, led_col, r, g, b, passthrough, on, custom, offset, index);
+        break;
+    }
+
+    case argos_id_set_auto_mouse_layer_enabled: {
+#ifdef BK_HAS_POINTING_DEVICE
+            send_data = true; // ack
+            bkpd_set_auto_mouse_layer_enabled(command_data[0]);
+#endif
+        break;
+    }
+    case argos_id_set_auto_precision_on_mouse_layer_enabled: {
+#ifdef BK_HAS_POINTING_DEVICE
+            send_data = true; // ack
+            bkpd_set_auto_precision_on_mouse_layer_enabled(command_data[0]);
+#endif
+        break;
+    }
+
+    case argos_id_set_axis_invert: {
+#ifdef BK_HAS_POINTING_DEVICE
+            send_data = true; // ack
+            const uint8_t axis_index = command_data[0];
+            const bool invert = command_data[1];
+            if(axis_index == 0 ) {
+                bkpd_set_dragscroll_axis_invert_x(invert);
+            }
+            else if(axis_index == 1) {
+                bkpd_set_dragscroll_axis_invert_y(invert);
+            }
+#endif
+        break;
+    }
+
+    case argos_id_set_dragscroll_dpi: {
+#ifdef BK_HAS_POINTING_DEVICE
+            send_data = true; // ack
+            bkpd_set_dragscroll_dpi(command_data[0]);
+#endif
         break;
     }
 
@@ -425,7 +449,6 @@ bool via_command_kb(uint8_t *data, uint8_t length) {
     if (result) {
         return true;
     } else {
-        printf("received a VIA command!\n");
         return false;
     }
     return false;

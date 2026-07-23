@@ -27,3 +27,19 @@
 #ifndef TAPPING_TERM_PER_KEY
 #define TAPPING_TERM_PER_KEY
 #endif
+
+// More available live storage! Useful for tap dances and RGB
+#define WEAR_LEVELING_BACKING_SIZE 131072
+
+#define SPLIT_TRANSACTION_IDS_KB RPC_ID_RGB_SYNC
+
+#if defined(POINTING_DEVICE_DRIVER_pmw3360) || defined(POINTING_DEVICE_DRIVER_digitizer) || defined(CIRQUE_PINNACLE_DIAMETER_MM)
+    #define BK_HAS_POINTING_DEVICE 1
+#endif
+
+#ifndef SPLIT_LAYER_STATE_ENABLE
+#define SPLIT_LAYER_STATE_ENABLE
+#endif
+#ifndef SPLIT_LED_STATE_ENABLE
+#define SPLIT_LED_STATE_ENABLE
+#endif
