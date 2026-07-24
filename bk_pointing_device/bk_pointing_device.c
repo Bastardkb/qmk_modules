@@ -159,7 +159,6 @@ void bkpd_cycle_pointer_default_dpi(bool forward) {
 */
 void bkpd_cycle_pointer_sniping_dpi_noeeprom(bool forward) {
     g_bkpd_config.pointer_sniping_dpi += forward ? 1 : -1;
-    printf("bkpd_cycle_pointer_sniping_dpi_noeeprom: %d\n", g_bkpd_config.pointer_sniping_dpi);
     bkpd_maybe_update_cpi();
 }
 
@@ -274,7 +273,6 @@ bool process_record_bk_pointing_device(uint16_t keycode, keyrecord_t* record) {
                 bkpd_cycle_pointer_default_dpi(/* forward= */ !has_shift_mod());
                 changing_dpi_settings = true;
                 changing_sniping_dpi_settings = false;
-                printf("DPI_MOD: %d\n", g_bkpd_config.pointer_default_dpi);
             }
             break;
         case DPI_RMOD:
@@ -283,7 +281,6 @@ bool process_record_bk_pointing_device(uint16_t keycode, keyrecord_t* record) {
                 bkpd_cycle_pointer_default_dpi(/* forward= */ has_shift_mod());
                 changing_dpi_settings = true;
                 changing_sniping_dpi_settings = false;
-                printf("DPI_RMOD: %d\n", g_bkpd_config.pointer_default_dpi);
             }
             break;
         case S_D_MOD:
@@ -292,7 +289,6 @@ bool process_record_bk_pointing_device(uint16_t keycode, keyrecord_t* record) {
                 bkpd_cycle_pointer_sniping_dpi(/* forward= */ !has_shift_mod());
                 changing_sniping_dpi_settings = true;
                 changing_dpi_settings = false;
-                printf("S_D_MOD: %d\n", g_bkpd_config.pointer_sniping_dpi);
             }
             break;
         case S_D_RMOD:
@@ -301,7 +297,6 @@ bool process_record_bk_pointing_device(uint16_t keycode, keyrecord_t* record) {
                 bkpd_cycle_pointer_sniping_dpi(/* forward= */ has_shift_mod());
                 changing_sniping_dpi_settings = true;
                 changing_dpi_settings = false;
-                printf("S_D_RMOD: %d\n", g_bkpd_config.pointer_sniping_dpi);
             }
             break;
         case SNIPING:
@@ -328,7 +323,7 @@ bool process_record_bk_pointing_device(uint16_t keycode, keyrecord_t* record) {
     return true;
 }
 
-bool bpkd_is_changing_dpi_settings(void) {
+bool bkpd_is_changing_dpi_settings(void) {
     return changing_dpi_settings || changing_sniping_dpi_settings;
 }
 
@@ -337,7 +332,6 @@ bool bpkd_is_changing_dpi_settings(void) {
 */
 // TODO handle secondary side? ....
 bool rgb_matrix_indicators_advanced_bk_pointing_device(uint8_t led_min, uint8_t led_max) {
-    // printf("rgb_matrix_indicators_advanced_bk_pointing_device: %d\n", led_min);
     const uint8_t layer = get_highest_layer(layer_state);
 
     if(layer != AUTO_MOUSE_DEFAULT_LAYER) {

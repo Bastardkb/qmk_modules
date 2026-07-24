@@ -33,7 +33,7 @@
 
 #define SPLIT_TRANSACTION_IDS_KB RPC_ID_RGB_SYNC
 
-#if defined(POINTING_DEVICE_DRIVER_pmw3360) || defined(POINTING_DEVICE_DRIVER_digitizer) || defined(CIRQUE_PINNACLE_DIAMETER_MM)
+#if defined(POINTING_DEVICE_DRIVER_pmw3360) || defined(POINTING_DEVICE_DRIVER_digitizer) || defined(POINTING_DEVICE_DRIVER_cirque_pinnacle_spi)
     #define BK_HAS_POINTING_DEVICE 1
 #endif
 

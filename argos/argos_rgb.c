@@ -39,7 +39,7 @@ void argos_rgb_load_from_eeprom(void) {
 bool rgb_matrix_indicators_advanced_argos(uint8_t led_min, uint8_t led_max) {
 #ifdef COMMUNITY_MODULE_BK_POINTING_DEVICE_ENABLE
     // if the pointing module is already changing the DPI settings, it will handle custom RGB indicators 
-    if(bpkd_is_changing_dpi_settings()) {
+    if(bkpd_is_changing_dpi_settings()) {
         return true;
     }
 #endif

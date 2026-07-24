@@ -195,7 +195,6 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
         argos_write_eeprom(ARGOS_OFFSET_CONFIG, &argos_config,
                            sizeof(argos_config));
         send_data = true;
-        printf("set theme id to %d\n", argos_config.themeId);
         break;
     }
 

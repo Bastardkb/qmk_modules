@@ -159,14 +159,8 @@ void argos_combo_set_keycode(uint8_t combo_index, uint16_t keycode,
     data[0] = ARGOS_CMD_PREFIX;
     raw_hid_send(data, sizeof(data));
 
-    printf("Setting combo %d key index %d to keycode %d\n", combo_index,
-           key_index, keycode);
-
     argos_combo_t combo;
     argos_combo_read_eeprom(listening_combo_index, &combo);
-    printf("Before: Combo: %d, Keycode: %d, Keys: %d, %d, %d, %d\n",
-           listening_combo_index, combo.keycode, combo.keys[0], combo.keys[1],
-           combo.keys[2], combo.keys[3]);
 
     bool is_valid = false;
     // key result
@@ -208,19 +202,12 @@ void argos_combo_set_keycode(uint8_t combo_index, uint16_t keycode,
             uint8_t deleted_keys = 0;
             for (int i = 0; i < ARGOS_KEYS_PER_COMBO - 1; i++) {
                 if (combo.keys[i] == 0) {
-                    printf("Deleted key at index %d\n", i);
                     // Shift everything by one to the left
                     for (int j = i; j < ARGOS_KEYS_PER_COMBO - 1; j++) {
-                        printf("Shifting key at index %d to %d\n", j, j + 1);
                         combo.keys[j] = combo.keys[j + 1];
                     }
-                    printf("Setting last key to 0\n");
                     combo.keys[ARGOS_KEYS_PER_COMBO - 1 - deleted_keys] = 0;
                     deleted_keys++;
-                    printf("Deleted %d keys\n", deleted_keys);
-                    printf("Combo: %d, Keycode: %d, Keys: %d, %d, %d, %d\n",
-                           listening_combo_index, combo.keycode, combo.keys[0],
-                           combo.keys[1], combo.keys[2], combo.keys[3]);
                 }
             }
         }
@@ -240,10 +227,6 @@ void argos_combo_set_keycode(uint8_t combo_index, uint16_t keycode,
         memcpy(keys, combo.keys, sizeof(combo.keys));
         argos_combos_QMK_data[combo_index].keycode = combo.keycode;
         // ----- End reload combo -----
-
-        printf("After: Combo: %d, Keycode: %d, Keys: %d, %d, %d, %d\n",
-               listening_combo_index, combo.keycode, combo.keys[0],
-               combo.keys[1], combo.keys[2], combo.keys[3]);
     }
 
     listening_for_combo_key = false;

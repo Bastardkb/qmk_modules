@@ -11,13 +11,12 @@
 
 void build_pointing_device_info_command_data(uint8_t **command_data) {
     (*command_data)[0] = pointing_device_type_unknown;
-
 #ifdef BK_HAS_POINTING_DEVICE
 #if defined(POINTING_DEVICE_DRIVER_pmw3360) // Charybdis / Dilemma trackball
     (*command_data)[0] = pointing_device_type_trackball;
 #elif defined(POINTING_DEVICE_DRIVER_digitizer) // Dilemma v3 / procyon
     (*command_data)[0] = pointing_device_type_trackpad_procyon;
-#elif defined(CIRQUE_PINNACLE_DIAMETER_MM) // Dilemma v2 / cirque
+#elif defined(POINTING_DEVICE_DRIVER_cirque_pinnacle_spi) // Dilemma v2 / cirque
     (*command_data)[0] = pointing_device_type_trackpad_cirque;
 #endif
     if((*command_data)[0] != pointing_device_type_unknown) {

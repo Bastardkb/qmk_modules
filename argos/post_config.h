@@ -43,7 +43,7 @@
 #define ARGOS_SIZE_TAP_DANCES (ARGOS_TAP_DANCE_ENTRIES * ARGOS_SIZE_TAP_DANCE)
 
 #define ARGOS_OFFSET_RGB_MATRIX (ARGOS_OFFSET_TAP_DANCE + ARGOS_SIZE_TAP_DANCES)
-#if defined(POINTING_DEVICE_DRIVER_digitizer) || defined(CIRQUE_PINNACLE_DIAMETER_MM)
+#if defined(POINTING_DEVICE_DRIVER_digitizer) || defined(POINTING_DEVICE_DRIVER_cirque_pinnacle_spi)
 // TODO manage dilemma trackball
 // dilemma, with underglow
 // TODO: we use too many LEDs, as the thumb cluster row is usually not fully used.

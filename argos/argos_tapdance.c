@@ -23,7 +23,6 @@ uint8_t listening_tap_dance_keycode_index = 0;
 uint8_t listening_tap_dance_index = 0;
 
 argos_td_state_t cur_dance(tap_dance_state_t *state) {
-    printf("Current dance state: %d\n", state->count);
     if (state->count == 1) {
         if (state->interrupted || !state->pressed) return TD_SINGLE_TAP;
         // Key has not been interrupted, but the key is still held. Means you want to send a 'HOLD'.
@@ -43,14 +42,11 @@ argos_td_state_t cur_dance(tap_dance_state_t *state) {
 static void on_dance(tap_dance_state_t *state, void *user_data) {
     uint8_t index = (uintptr_t)user_data;
     // TODO replace this with loading the array from memory, instead of an EEPROM read...
-    printf("On dance\n");
     argos_td_entry_t *entry = argos_tap_dance_get(index);
     if (entry == NULL)
         return;
     if (!entry->enabled)
         return;
-    printf("Dance started for index %d\n", index);
-    printf("State count: %d\n", state->count);
     uint16_t kc = entry->on_tap;
     if (kc) {
         if (state->count == 3) {
@@ -67,16 +63,12 @@ static void on_dance(tap_dance_state_t *state, void *user_data) {
 void on_dance_finished(tap_dance_state_t *state, void *user_data) {
     uint8_t index = (uintptr_t)user_data;
     // TODO replace this with loading the array from memory, instead of an EEPROM read...
-    printf("On dance finished\n");
     argos_td_entry_t *entry = argos_tap_dance_get(index);   
     if (entry == NULL)
         return;
-    printf("Read dance, TD_ENABLED: %d\n", entry->enabled);
     if (!entry->enabled)
         return;
-    printf("Dance finished for index %d\n", index);
     dance_state[index] = cur_dance(state);
-    printf("Dance state: %d\n", dance_state[index]);
     switch (dance_state[index]) {
         case TD_SINGLE_TAP: {
             if (entry->on_tap)
@@ -112,11 +104,9 @@ void on_dance_finished(tap_dance_state_t *state, void *user_data) {
 
 void on_dance_reset(tap_dance_state_t *state, void *user_data) {
     uint8_t index = (uintptr_t)user_data;
-    printf("On dance reset\n");
     argos_td_entry_t *entry = argos_tap_dance_get(index);
     if (entry == NULL)
         return;
-    printf("Read dance, TD_ENABLED: %d\n", entry->enabled);
     if (!entry->enabled)
         return;
     wait_ms(TAP_CODE_DELAY);
@@ -179,7 +169,6 @@ uint16_t tap_dance_count(void) {
 
 // Override the introspection function
 tap_dance_action_t* tap_dance_get(uint16_t index) {
-    printf("Getting tap dance action for index %d\n", index);
     if (index >= ARGOS_TAP_DANCE_ENTRIES) {
         return NULL;
     }
@@ -220,18 +209,14 @@ void argos_tap_dance_load_from_eeprom(uint8_t index) {
 // Reads a tap dance entry from EEPROM for the specified index.
 bool argos_tap_dance_read_eeprom(uint8_t index, argos_td_entry_t *entry) {
     if (index >= ARGOS_TAP_DANCE_ENTRIES) return false;
-    // printf("Reading tap dance %d from eeprom\n", index);
     argos_read_eeprom(ARGOS_OFFSET_TAP_DANCE + index * sizeof(argos_td_entry_t),
                        entry, sizeof(argos_td_entry_t));
-    // printf("Data: %d, %d, %d, %d, %d, %d\n", entry->on_tap, entry->on_hold, entry->on_double_tap, entry->on_tap_hold, entry->custom_tapping_term, entry->enabled);
     return true;
 }
 
 // Writes a tap dance entry to EEPROM at the specified index.
 bool argos_tap_dance_write_eeprom(uint8_t index, const argos_td_entry_t *entry) {
     if (index >= ARGOS_TAP_DANCE_ENTRIES) return false;
-    printf("Writing tap dance %d to eeprom\n", index);
-    printf("Data: %d, %d, %d, %d, %d, %d\n", entry->on_tap, entry->on_hold, entry->on_double_tap, entry->on_tap_hold, entry->custom_tapping_term, entry->enabled);
     argos_write_eeprom(ARGOS_OFFSET_TAP_DANCE + index * sizeof(argos_td_entry_t),
                        entry, sizeof(argos_td_entry_t));
     return true;
@@ -243,7 +228,6 @@ void argos_tap_dance_listen_for_key(uint8_t *data) {
     listening_tap_dance_index = data[0];
     listening_tap_dance_keycode_index = data[1]; // 0... 3 
     listening_for_tap_dance_key = true;
-    // printf("Listening for tap dance key %d\n", listening_tap_dance_index);
 }
 
 // TODO code duplication with argos_combo.c
@@ -253,8 +237,6 @@ bool process_record_argos_tap_dance(uint16_t keycode, keyrecord_t *record) {
         if (timer_read32() - last_activity_time > 3500)
             listening_for_tap_dance_key = false;
         else{
-            // printf("Setting tap dance index %d key %d to keycode %d\n", listening_tap_dance_index, listening_tap_dance_keycode_index, keycode);
-            // printf("For tap dance index %d\n", listening_tap_dance_index);
             argos_tap_dance_set_keycode(listening_tap_dance_index, keycode,
                                     listening_tap_dance_keycode_index);
             listening_for_tap_dance_key = false;
@@ -271,8 +253,6 @@ void argos_tap_dance_reset_capturing_tap_dance_key_index(uint8_t index) {
 // TODO resets (zero key)
 void argos_tap_dance_set_keycode(uint8_t tap_dance_index, uint16_t keycode,
                              uint8_t key_index) {
-
-    printf("Setting tap dance index %d key %d to keycode %d\n", tap_dance_index, key_index, keycode);
 
     if (tap_dance_index >= ARGOS_TAP_DANCE_ENTRIES) return;
     // TODO move this to a table directly instead of reading/writing every time
