@@ -6,6 +6,9 @@
 #include "bk_pointing_device.h"
 #endif
 
+
+#if defined(RGBLIGHT_ENABLE) || defined(RGB_MATRIX_ENABLE)
+
 static argos_rgb_t argos_rgb_entries[ARGOS_RGB_MATRIX_ENTRIES];
 
 void argos_rgb_init(void) {
@@ -126,3 +129,5 @@ void argos_rgb_get_led_at_position(argos_rgb_t *entry, uint8_t layer, uint8_t in
     uint16_t baseIndex = layer * RGB_ENTRIES_PER_LAYER;
     *entry = argos_rgb_entries[baseIndex + index + offset];
 }
+
+#endif

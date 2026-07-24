@@ -82,16 +82,19 @@ void keyboard_post_init_argos(void) {
         argos_config.global_tapping_term = TAPPING_TERM;
         argos_config.global_combo_term = COMBO_TERM;
         argos_write_eeprom(ARGOS_OFFSET_CONFIG, &argos_config,
-                           sizeof(argos_config));
+                           sizeof(argos_config));  
+#if defined(RGBLIGHT_ENABLE) || defined(RGB_MATRIX_ENABLE)
         argos_rgb_init();
+#endif
     }
     argos_combos_load_from_eeprom();
     argos_tap_dances_load_from_eeprom();
     argos_reload_tap_dances();
+#if defined(RGBLIGHT_ENABLE) || defined(RGB_MATRIX_ENABLE)
     argos_rgb_load_from_eeprom();
-
     // for rgb sync, needed for propagating changes
     transaction_register_rpc(RPC_ID_RGB_SYNC, rgb_sync_handler);
+#endif
 }
 
 bool argos_handle_command(uint8_t *data, uint8_t length) {
@@ -361,6 +364,7 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
 
     case argos_id_get_rgb_matrix_led_at_position: {
         send_data = true;
+#if defined(RGBLIGHT_ENABLE) || defined(RGB_MATRIX_ENABLE)
         uint8_t layer = command_data[0];
         uint8_t index = command_data[1];
         uint8_t offset = command_data[2];
@@ -373,10 +377,12 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
         command_data[4] = entry.on;
         command_data[5] = entry.custom;
         break;
+#endif
     }
 
     case argos_id_set_rgb_matrix_led_at_position: {
-        send_data = true; // ack
+        send_data = true;
+#if defined(RGBLIGHT_ENABLE) || defined(RGB_MATRIX_ENABLE)
         uint8_t led_layer = command_data[0];
         uint8_t led_row = command_data[1]; // legacy
         uint8_t led_col = command_data[2]; // legacy
@@ -390,6 +396,7 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
         uint8_t index = command_data[10];
         argos_rgb_set_led_at_position(led_layer, led_row, led_col, r, g, b, passthrough, on, custom, offset, index);
         break;
+#endif
     }
 
     case argos_id_set_auto_mouse_layer_enabled: {

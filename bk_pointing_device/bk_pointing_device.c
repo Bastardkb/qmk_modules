@@ -330,7 +330,7 @@ bool bkpd_is_changing_dpi_settings(void) {
 /*
 *   \brief Manage a visual indicator of the DPI/Sniping DPI that's being changed.
 */
-// TODO handle secondary side? ....
+#if defined(RGBLIGHT_ENABLE) || defined(RGB_MATRIX_ENABLE)
 bool rgb_matrix_indicators_advanced_bk_pointing_device(uint8_t led_min, uint8_t led_max) {
     const uint8_t layer = get_highest_layer(layer_state);
 
@@ -406,6 +406,8 @@ bool rgb_matrix_indicators_advanced_bk_pointing_device(uint8_t led_min, uint8_t 
     }
     return true; // process further in parent function
 }
+
+#endif
 
 /**
 * \brief Initialize the pointing device.
