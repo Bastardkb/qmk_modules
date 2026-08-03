@@ -164,12 +164,12 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
 
     case argos_id_set_combo: {
         uint8_t combo_index = command_data[0];
-        uint16_t keycode = command_data[1] | (command_data[2] << 8);
+        uint16_t keycode = command_data[1] << 8 | (command_data[2]);
         argos_combo_set_keycode(combo_index, keycode, 0);
-        for (int i = 1; i < ARGOS_KEYS_PER_COMBO; i++) {
+        for (int i = 0; i < ARGOS_KEYS_PER_COMBO; i++) {
             uint16_t key =
-                command_data[3 + i * 2] | (command_data[4 + i * 2] << 8);
-            argos_combo_set_keycode(combo_index, key, i);
+                command_data[3 + i * 2] << 8 | (command_data[4 + i * 2]);
+            argos_combo_set_keycode(combo_index, key, i+1); // first key is the result keycode
         }
         // reload combo from eeprom
         argos_combo_load_from_eeprom(combo_index);
@@ -239,7 +239,7 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
         uint8_t index = command_data[0];
         for (int i = 0; i < 4; i++) { // 4 keys per tap dance
             uint16_t keycode =
-                command_data[i * 2 + 1] | (command_data[i * 2 + 2] << 8);
+                (command_data[i * 2 + 1] << 8) | (command_data[i * 2 + 2]);
             argos_tap_dance_set_keycode(index, keycode, i);
         }
         send_data = true; // ack
@@ -432,7 +432,8 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
     case argos_id_set_dragscroll_dpi: {
 #ifdef BK_HAS_POINTING_DEVICE
             send_data = true; // ack
-            bkpd_set_dragscroll_dpi(command_data[0]);
+            // TODO
+            // bkpd_set_dragscroll_dpi(command_data[0]);
 #endif
         break;
     }

@@ -163,15 +163,15 @@ void argos_combo_set_keycode(uint8_t combo_index, uint16_t keycode,
     argos_combo_read_eeprom(listening_combo_index, &combo);
 
     bool is_valid = false;
+    
     // key result
-    if (listening_keycode_index == 0) {
+    if (key_index == 0) {
         combo.keycode = keycode;
         is_valid = true;
     }
     // key input
-    else if ((listening_keycode_index - 1 < ARGOS_KEYS_PER_COMBO) &&
-             listening_keycode_index - 1 >= 0) {
-
+    else if ((key_index - 1 < ARGOS_KEYS_PER_COMBO) &&
+    key_index - 1 >= 0) {
         // Test for duplicates:
         // QMK does not like it when there are multiple of the same keys in the
         // combo. So we need to find any potential duplicates and set them to
@@ -189,8 +189,7 @@ void argos_combo_set_keycode(uint8_t combo_index, uint16_t keycode,
         }
 
         if (is_valid) {
-            uint8_t key_index = listening_keycode_index - 1;
-            combo.keys[key_index] = keycode;
+            combo.keys[key_index - 1] = keycode;
 
             // It's possible the user deleted a key in the middle of the input
             // keys, or is assigning a key with an empty key in between We don't
