@@ -48,14 +48,14 @@ ASSERT_COMMUNITY_MODULES_MIN_API_VERSION(1, 0, 0);
 #define BK_POINTING_DEVICE_DEFAULT_DPI_CONFIG_STEP 200
 #define BK_POINTING_DEVICE_MINIMUM_SNIPING_DPI 200
 #define BK_POINTING_DEVICE_SNIPING_DPI_CONFIG_STEP 100
-#define BK_POINTING_DEVICE_BK_POINTING_DEVICE_DRAGSCROLL_DPI 100
-#define BK_POINTING_DEVICE_BK_POINTING_DEVICE_DRAGSCROLL_BUFFER_SIZE 6
+#define BK_POINTING_DEVICE_DRAGSCROLL_DPI 100
+#define BK_POINTING_DEVICE_DRAGSCROLL_BUFFER_SIZE 6
 
 #define BK_POINTING_DEVICE_MAX_DPI_BYTES 4
 #define BK_POINTING_DEVICE_MAX_SNIPING_DPI_BYTES 2
 
 #ifdef POINTING_DEVICE_DRIVER_digitizer
-#define BK_POINTING_DEVICE_BK_POINTING_DEVICE_DRAGSCROLL_BUFFER_SIZE_DIGITIZER 600
+#define BK_POINTING_DEVICE_DRAGSCROLL_BUFFER_SIZE_DIGITIZER 600
 #endif
 
 typedef union {
@@ -127,7 +127,7 @@ uint16_t bkpd_get_pointer_sniping_dpi(void) {
 /** \brief Set the appropriate DPI for the input config. */
 static void bkpd_maybe_update_cpi(void) {
     if (g_bkpd_config.is_dragscroll_enabled) {
-        pointing_device_set_cpi(BK_POINTING_DEVICE_BK_POINTING_DEVICE_DRAGSCROLL_DPI);
+        pointing_device_set_cpi(BK_POINTING_DEVICE_DRAGSCROLL_DPI);
     } else if (g_bkpd_config.is_sniping_enabled) {
         pointing_device_set_cpi(bkpd_get_pointer_sniping_dpi());
     } else {
@@ -232,11 +232,11 @@ report_mouse_t pointing_device_task_bk_pointing_device(report_mouse_t mouse_repo
             scroll_buffer_y += (g_bkpd_config.dragscroll_axis_invert_y ? -1 : 1) * mouse_report.y;
             mouse_report.x = 0;
             mouse_report.y = 0;
-            if (abs(scroll_buffer_x) > BK_POINTING_DEVICE_BK_POINTING_DEVICE_DRAGSCROLL_BUFFER_SIZE) {
+            if (abs(scroll_buffer_x) > BK_POINTING_DEVICE_DRAGSCROLL_BUFFER_SIZE) {
                 mouse_report.h = scroll_buffer_x > 0 ? 1 : -1;
                 scroll_buffer_x = 0;
             }
-            if (abs(scroll_buffer_y) > BK_POINTING_DEVICE_BK_POINTING_DEVICE_DRAGSCROLL_BUFFER_SIZE) {
+            if (abs(scroll_buffer_y) > BK_POINTING_DEVICE_DRAGSCROLL_BUFFER_SIZE) {
                 mouse_report.v = scroll_buffer_y > 0 ? 1 : -1;
                 scroll_buffer_y = 0;
             }
@@ -431,10 +431,10 @@ void keyboard_post_init_bk_pointing_device(void) {
 
     if(!g_bkpd_config.has_copied_qmk_config) {
         g_bkpd_config.has_copied_qmk_config = true;
-#ifdef BK_POINTING_DEVICE_BK_POINTING_DEVICE_DRAGSCROLL_REVERSE_X
+#ifdef BK_POINTING_DEVICE_DRAGSCROLL_REVERSE_X
         g_bkpd_config.dragscroll_axis_invert_x = true;
 #endif
-#ifdef BK_POINTING_DEVICE_BK_POINTING_DEVICE_DRAGSCROLL_REVERSE_Y
+#ifdef BK_POINTING_DEVICE_DRAGSCROLL_REVERSE_Y
         g_bkpd_config.dragscroll_axis_invert_y = true;
 #endif
         write_bkpd_config_to_eeprom();
@@ -517,17 +517,17 @@ bool digitizer_task_kb(digitizer_t *const digitizer_state) {
         report.x = 0;
         report.y = 0;
         // prevent bounceback issues
-        if(abs(scroll_buffer_x) > BK_POINTING_DEVICE_BK_POINTING_DEVICE_DRAGSCROLL_BUFFER_SIZE_DIGITIZER+200) {
+        if(abs(scroll_buffer_x) > BK_POINTING_DEVICE_DRAGSCROLL_BUFFER_SIZE_DIGITIZER+200) {
             scroll_buffer_x = 0;
         }
-        if(abs(scroll_buffer_y) > BK_POINTING_DEVICE_BK_POINTING_DEVICE_DRAGSCROLL_BUFFER_SIZE_DIGITIZER+200) {
+        if(abs(scroll_buffer_y) > BK_POINTING_DEVICE_DRAGSCROLL_BUFFER_SIZE_DIGITIZER+200) {
             scroll_buffer_y = 0;
         }
-        if (abs(scroll_buffer_x) > BK_POINTING_DEVICE_BK_POINTING_DEVICE_DRAGSCROLL_BUFFER_SIZE_DIGITIZER) {
+        if (abs(scroll_buffer_x) > BK_POINTING_DEVICE_DRAGSCROLL_BUFFER_SIZE_DIGITIZER) {
             report.h = scroll_buffer_x > 0 ? 1 : -1;
             scroll_buffer_x = 0;
         }
-        if (abs(scroll_buffer_y) > BK_POINTING_DEVICE_BK_POINTING_DEVICE_DRAGSCROLL_BUFFER_SIZE_DIGITIZER) {
+        if (abs(scroll_buffer_y) > BK_POINTING_DEVICE_DRAGSCROLL_BUFFER_SIZE_DIGITIZER) {
             report.v = scroll_buffer_y > 0 ? 1 : -1;
             scroll_buffer_y = 0;
         }
