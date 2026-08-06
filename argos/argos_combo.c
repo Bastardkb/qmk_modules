@@ -160,7 +160,7 @@ void argos_combo_set_keycode(uint8_t combo_index, uint16_t keycode,
     raw_hid_send(data, sizeof(data));
 
     argos_combo_t combo;
-    argos_combo_read_eeprom(listening_combo_index, &combo);
+    argos_combo_read_eeprom(combo_index, &combo);
 
     bool is_valid = false;
     
@@ -214,7 +214,7 @@ void argos_combo_set_keycode(uint8_t combo_index, uint16_t keycode,
 
     if (is_valid) {
         // Save the newly created combo in memory
-        argos_combo_write_eeprom(listening_combo_index, &combo);
+        argos_combo_write_eeprom(combo_index, &combo);
 
         // Reload combo: we can do this without touching eeprom, because we
         // already have the data in memory This saves on eeprom read/writes
