@@ -100,6 +100,7 @@ void keyboard_post_init_argos(void) {
 bool argos_handle_command(uint8_t *data, uint8_t length) {
     uint8_t protocol = data[0];
 
+    
     if (protocol != ARGOS_CMD_PREFIX)
         return false; // not an Argos command
 
