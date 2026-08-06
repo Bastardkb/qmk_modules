@@ -1,0 +1,30 @@
+name: Notify Userspace Repo
+
+on:
+  push:
+    branches:
+      - main  # Change to your default branch
+
+jobs:
+  ping-userspace:
+    runs-on: ubuntu-latest
+    steps:
+    # 1. Generate temporary GitHub App Installation Token for the Organization
+      - name: Generate App Token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: bastardkb
+          repositories: |
+            qmk_userspace
+
+      # 2. Trigger dispatch in userspace repo
+      - name: Trigger update in Userspace Repo
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ steps.generate-token.outputs.token }}" \
+            https://api.github.com/repos/bastardkb/qmk_userspace/dispatches \
+            -d '{"event_type": "submodule-updated"}'
