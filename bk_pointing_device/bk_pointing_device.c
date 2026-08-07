@@ -492,6 +492,10 @@ bool digitizer_task_kb(digitizer_t *const digitizer_state) {
     uint16_t delta_x = 0;
     uint16_t delta_y = 0;
 
+    if (!digitizer_task_user(digitizer_state)) {
+        return false;
+    }
+
     for (int i = 0; i < DIGITIZER_CONTACT_COUNT; i++) {
 #if DIGITIZER_FINGER_COUNT > 0
         if (i < DIGITIZER_FINGER_COUNT) {
