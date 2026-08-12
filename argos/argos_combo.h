@@ -15,8 +15,5 @@ void argos_combos_copy_from_QMK(void);
 bool argos_combo_read_eeprom(uint8_t index, argos_combo_t* combo);
 void argos_combo_write_eeprom(uint8_t index, argos_combo_t* combo);
 combo_t argos_combo_get(uint8_t index);
-void argos_combo_listen_for_key(uint8_t* data);
-bool process_record_argos_combo(uint16_t keycode, keyrecord_t *record);
 void argos_combo_load_from_eeprom(uint8_t index);
-void argos_combo_reset_capturing_combo_key_index(uint8_t index);
 void argos_combo_set_keycode(uint8_t combo_index, uint16_t keycode, uint8_t key_index);

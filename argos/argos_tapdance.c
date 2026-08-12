@@ -18,10 +18,6 @@ static argos_td_entry_t argos_td_entries[ARGOS_TAP_DANCE_ENTRIES];
 #define TD_ENABLED(entry) ((entry).custom_tapping_term & 0x8000)
 
 
-bool listening_for_tap_dance_key = false;
-uint8_t listening_tap_dance_keycode_index = 0;
-uint8_t listening_tap_dance_index = 0;
-
 argos_td_state_t cur_dance(tap_dance_state_t *state) {
     if (state->count == 1) {
         if (state->interrupted || !state->pressed) return TD_SINGLE_TAP;
@@ -220,34 +216,6 @@ bool argos_tap_dance_write_eeprom(uint8_t index, const argos_td_entry_t *entry) 
     argos_write_eeprom(ARGOS_OFFSET_TAP_DANCE + index * sizeof(argos_td_entry_t),
                        entry, sizeof(argos_td_entry_t));
     return true;
-}
-
-// TODO move the data out of here
-void argos_tap_dance_listen_for_key(uint8_t *data) {
-    last_activity_time = timer_read32();
-    listening_tap_dance_index = data[0];
-    listening_tap_dance_keycode_index = data[1]; // 0... 3 
-    listening_for_tap_dance_key = true;
-}
-
-// TODO code duplication with argos_combo.c
-bool process_record_argos_tap_dance(uint16_t keycode, keyrecord_t *record) {
-    if (listening_for_tap_dance_key) {
-        // Disable listening after 3.5 seconds of inactivity
-        if (timer_read32() - last_activity_time > 3500)
-            listening_for_tap_dance_key = false;
-        else{
-            argos_tap_dance_set_keycode(listening_tap_dance_index, keycode,
-                                    listening_tap_dance_keycode_index);
-            listening_for_tap_dance_key = false;
-            return false; // do not process further
-        }
-    }
-    return true;
-}
-
-void argos_tap_dance_reset_capturing_tap_dance_key_index(uint8_t index) {
-    argos_tap_dance_set_keycode(listening_tap_dance_index, 0, listening_tap_dance_keycode_index);
 }
 
 // TODO resets (zero key)

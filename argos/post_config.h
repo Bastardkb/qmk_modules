@@ -66,3 +66,10 @@
 // Reduce max address for dynamic keymap to ensure we don't overlap with Argos' EEPROM storage
 // much easier than trying to set the start address.
 #define DYNAMIC_KEYMAP_EEPROM_MAX_ADDR (TOTAL_EEPROM_BYTE_COUNT - 1 - ARGOS_EEPROM_SIZE_CALC)
+
+// By default, macro space takes all the rest of the available space.
+// This is made with AVR in mind, as that space will be very small.
+// Here, it will be very big. This could cause issues with wear, since re-writing a macro
+//    actually re-writes the whole macro space.
+// So instead we define a smaller space manually.
+#define DYNAMIC_KEYMAP_MACRO_EEPROM_SIZE 16*512
