@@ -115,8 +115,8 @@ static void write_bkpd_config_to_eeprom(void) {
 }
 
 bool bkpd_dispatch_command(const uint8_t command_id, uint8_t **command_data) {
-#if defined(COMMUNITY_MODULE_ARGOS_ENABLE)
     bool send_data = true;
+#if defined(COMMUNITY_MODULE_ARGOS_ENABLE)
     switch(command_id) {
     case argos_id_get_pointing_device_info: {
         bkpd_build_pointing_device_info_command_data(command_data);
@@ -158,8 +158,8 @@ bool bkpd_dispatch_command(const uint8_t command_id, uint8_t **command_data) {
     default:
         break;
     }
-    return send_data;
 #endif
+    return send_data;
 }
 
 void bkpd_build_pointing_device_info_command_data(uint8_t **command_data) {
@@ -228,7 +228,7 @@ void bkpd_set_pointer_default_dpi(uint16_t new_dpi) {
     int16_t difference = new_dpi - old_dpi;
     // calculate how many steps we need, it could be negative
     uint16_t default_dpi_config_step = bkpd_get_default_dpi_config_step();
-    int8_t new_steps = difference / default_dpi_config_step;
+    int16_t new_steps = difference / default_dpi_config_step;
     // apply the steps one by one
     bool forward = new_steps > 0;
     for (int i = 0; i < abs(new_steps); i++) {
