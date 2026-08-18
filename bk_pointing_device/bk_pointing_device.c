@@ -455,6 +455,33 @@ bool process_record_bk_pointing_device(uint16_t keycode, keyrecord_t* record) {
     return true;
 }
 
+#if defined(POINTING_DEVICE_AUTO_MOUSE_ENABLE)
+/**
+ * Treat pointing-device keycodes as mouse keys so auto mouse layer stays
+ * active while they are held.
+ *
+ * QMK deactivates the auto mouse layer on a non-mouse key unless something
+ * else is holding it (movement, a held mouse key, or a layer toggle).
+ * DRGSCRL/SNIPING are hold-to-enable; if the layer drops while they are
+ * held, the key-up is resolved on layer 0 and the mode never turns off.
+ */
+bool is_mouse_record_kb(uint16_t keycode, keyrecord_t* record) {
+    switch (keycode) {
+        case DPI_MOD:
+        case DPI_RMOD:
+        case S_D_MOD:
+        case S_D_RMOD:
+        case SNIPING:
+        case SNP_TOG:
+        case DRGSCRL:
+        case DRG_TOG:
+            return true;
+        default:
+            return is_mouse_record_user(keycode, record);
+    }
+}
+#endif // POINTING_DEVICE_AUTO_MOUSE_ENABLE
+
 bool bkpd_is_changing_dpi_settings(void) {
     return changing_dpi_settings || changing_sniping_dpi_settings;
 }
