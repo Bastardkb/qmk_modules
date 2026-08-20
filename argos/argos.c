@@ -23,8 +23,6 @@
 #include <string.h>
 #include <time.h>
 
-#include "argos_pointer.h"
-
 #if BK_HAS_POINTING_DEVICE
 #include "bk_pointing_device.h"
 #endif
@@ -145,24 +143,6 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
         break;
     }
 
-    case argos_id_get_pointing_device_info: {
-        build_pointing_device_info_command_data(&command_data);
-        send_data = true;
-        break;
-    }
-
-    case argos_id_set_dpi: {
-        argos_set_dpi(command_data);
-        send_data = true;
-        break;
-    }
-
-    case argos_id_set_sniping_dpi: {
-        argos_set_sniping_dpi(command_data);
-        send_data = true;
-        break;
-    }
-
     case argos_id_set_combo: {
         uint8_t combo_index = command_data[0];
         uint16_t keycode = command_data[1] << 8 | (command_data[2]);
@@ -265,8 +245,8 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
         break;
     }
 
+    // legacy
     case argos_id_capture_combo_key: {
-        argos_combo_listen_for_key(command_data);
         break;
     }
 
@@ -357,9 +337,8 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
         break;
     }
 
+    // legacy
     case argos_id_delete_combo_key: {
-        uint8_t key_index = command_data[0];
-        argos_combo_reset_capturing_combo_key_index(key_index);
         break;
     }
 
@@ -400,44 +379,18 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
 #endif
     }
 
-    case argos_id_set_auto_mouse_layer_enabled: {
 #ifdef BK_HAS_POINTING_DEVICE
-            send_data = true; // ack
-            bkpd_set_auto_mouse_layer_enabled(command_data[0]);
-#endif
-        break;
-    }
-    case argos_id_set_auto_precision_on_mouse_layer_enabled: {
-#ifdef BK_HAS_POINTING_DEVICE
-            send_data = true; // ack
-            bkpd_set_auto_precision_on_mouse_layer_enabled(command_data[0]);
-#endif
+    case argos_id_set_sniping_dpi:
+    case argos_id_set_dpi:
+    case argos_id_set_auto_mouse_layer_enabled:
+    case argos_id_set_auto_precision_on_mouse_layer_enabled:
+    case argos_id_set_axis_invert:
+    case argos_id_get_pointing_device_info: {
+        send_data = bkpd_dispatch_command(*command_id, &command_data);
         break;
     }
 
-    case argos_id_set_axis_invert: {
-#ifdef BK_HAS_POINTING_DEVICE
-            send_data = true; // ack
-            const uint8_t axis_index = command_data[0];
-            const bool invert = command_data[1];
-            if(axis_index == 0 ) {
-                bkpd_set_dragscroll_axis_invert_x(invert);
-            }
-            else if(axis_index == 1) {
-                bkpd_set_dragscroll_axis_invert_y(invert);
-            }
-#endif
-        break;
-    }
-
-    case argos_id_set_dragscroll_dpi: {
-#ifdef BK_HAS_POINTING_DEVICE
-            send_data = true; // ack
-            // TODO
-            // bkpd_set_dragscroll_dpi(command_data[0]);
-#endif
-        break;
-    }
+#endif // BK_HAS_POINTING_DEVICE
 
     default:
         return false;
@@ -467,16 +420,6 @@ bool process_record_argos(uint16_t keycode, keyrecord_t *record) {
     bool captured = process_records_argos_capture_all_keycodes(keycode, record);
     if (captured) {
         return false; // we captured a keycode, no need to process further
-    }
-    if (record->event.pressed) {
-        // process combo first
-        bool captured = !process_record_argos_combo(keycode, record);
-        // then, process tap dance
-        if (!captured)
-            captured = !process_record_argos_tap_dance(keycode, record);
-        if (captured) {
-            return false; // we captured a combo key, no need to process further
-        }
     }
     return true;
 }

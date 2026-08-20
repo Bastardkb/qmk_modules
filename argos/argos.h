@@ -9,7 +9,7 @@
 #include "util.h"
 
 // Argos protocol version
-#define ARGOS_PROTOCOL_VERSION 0x0004
+#define ARGOS_PROTOCOL_VERSION 0x0005
 #define ARGOS_CMD_PREFIX 0x90 // hopefully something that won't conflict with VIA
 #define QMK_KEYCODES_VERSION_COMPATIBLE_0 0
 #define QMK_KEYCODES_VERSION_COMPATIBLE_1 0
@@ -21,8 +21,8 @@ uint32_t last_activity_time;
 enum argos_command_id {
     argos_id_get_kb_info = 0x01,
     argos_id_get_combo = 0x02,
-    argos_id_delete_combo_key = 0x03,
-    argos_id_capture_combo_key = 0x04,
+    argos_id_delete_combo_key = 0x03, // legacy, not used anymore
+    argos_id_capture_combo_key = 0x04, // legacy, not used anymore
     argos_id_get_theme_id = 0x05, // legacy, not used anymore
     argos_id_set_theme_id = 0x06,
     argos_id_get_tap_dance = 0x07,

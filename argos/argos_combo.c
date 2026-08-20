@@ -28,10 +28,6 @@ static combo_t argos_combos_QMK_data[ARGOS_COMBO_ENTRIES];
 // +1 for COMBO_END terminator
 static uint16_t argos_combo_keys[ARGOS_COMBO_ENTRIES][ARGOS_KEYS_PER_COMBO + 1];
 
-bool listening_for_combo_key = false;
-uint8_t listening_keycode_index = 0;
-uint8_t listening_combo_index = 0;
-
 // TODO deal with disabled combos?
 // TODO deal with NULL combos?... right now we set everything to zero
 // or... just communicate them to the webapp and let it handle it
@@ -136,19 +132,6 @@ void argos_combos_copy_from_QMK(void) {
     }
 }
 
-// TODO move the data out of here
-void argos_combo_listen_for_key(uint8_t *data) {
-    last_activity_time = timer_read32();
-    listening_combo_index = data[0];
-    // 0 for result, 1.... x for combo input
-    listening_keycode_index = data[1];
-    listening_for_combo_key = true;
-}
-
-void argos_combo_reset_capturing_combo_key_index(uint8_t index) {
-    argos_combo_set_keycode(listening_combo_index, 0, listening_keycode_index);
-}
-
 // TODO this function is quite big... but separating it into smaller functions
 // would require an unpacker (since combo_t is packed), so we big function it
 // is!
@@ -227,22 +210,6 @@ void argos_combo_set_keycode(uint8_t combo_index, uint16_t keycode,
         argos_combos_QMK_data[combo_index].keycode = combo.keycode;
         // ----- End reload combo -----
     }
-
-    listening_for_combo_key = false;
-}
-
-bool process_record_argos_combo(uint16_t keycode, keyrecord_t *record) {
-    // Disable listening after 3.5 seconds of inactivity
-    if (listening_for_combo_key) {
-        if (timer_read32() - last_activity_time > 3500)
-            listening_for_combo_key = false;
-        else {
-            argos_combo_set_keycode(listening_combo_index, keycode,
-                                    listening_keycode_index);
-            return false; // do not process further
-        }
-    }
-    return true;
 }
 
 combo_t argos_combo_get(uint8_t index) {
