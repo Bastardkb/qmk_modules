@@ -55,9 +55,9 @@ bool rgb_matrix_indicators_advanced_argos(uint8_t led_min, uint8_t led_max) {
             if(argos_rgb_entries[index].on) {
                 if(argos_rgb_entries[index].passthrough == false) {
                     rgb_t rgb = {0, 0, 0};
-                    rgb.r = (argos_rgb_entries[index].r * rgb_matrix_get_val()) / RGB_MATRIX_MAXIMUM_BRIGHTNESS;
-                    rgb.g = (argos_rgb_entries[index].g * rgb_matrix_get_val()) / RGB_MATRIX_MAXIMUM_BRIGHTNESS;
-                    rgb.b = (argos_rgb_entries[index].b * rgb_matrix_get_val()) / RGB_MATRIX_MAXIMUM_BRIGHTNESS;
+                    rgb.r = (argos_rgb_entries[index].r * rgb_matrix_get_val()) / RGB_MATRIX_MAXIMUM_BRIGHTNESS / 5;
+                    rgb.g = (argos_rgb_entries[index].g * rgb_matrix_get_val()) / RGB_MATRIX_MAXIMUM_BRIGHTNESS / 5;
+                    rgb.b = (argos_rgb_entries[index].b * rgb_matrix_get_val()) / RGB_MATRIX_MAXIMUM_BRIGHTNESS / 5;
                     rgb_matrix_set_color(i, rgb.r, rgb.g, rgb.b);
                 }
             } else {
