@@ -317,6 +317,7 @@ void bkpd_set_auto_mouse_layer_enabled(bool enabled) {
 void bkpd_set_auto_precision_on_mouse_layer_enabled(bool enabled) {
     g_bkpd_config.auto_precision_on_mouse_layer_enabled = enabled;
     bkpd_maybe_update_cpi();
+    write_bkpd_config_to_eeprom();
 }
 
 bool bkpd_get_auto_mouse_layer_enabled(void) {
