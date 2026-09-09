@@ -55,9 +55,15 @@ bool rgb_matrix_indicators_advanced_argos(uint8_t led_min, uint8_t led_max) {
             if(argos_rgb_entries[index].on) {
                 if(argos_rgb_entries[index].passthrough == false) {
                     rgb_t rgb = {0, 0, 0};
-                    rgb.r = (argos_rgb_entries[index].r * rgb_matrix_get_val()) / RGB_MATRIX_MAXIMUM_BRIGHTNESS / 5;
-                    rgb.g = (argos_rgb_entries[index].g * rgb_matrix_get_val()) / RGB_MATRIX_MAXIMUM_BRIGHTNESS / 5;
-                    rgb.b = (argos_rgb_entries[index].b * rgb_matrix_get_val()) / RGB_MATRIX_MAXIMUM_BRIGHTNESS / 5;
+                    rgb.r = (argos_rgb_entries[index].r * rgb_matrix_get_val()) / RGB_MATRIX_MAXIMUM_BRIGHTNESS;
+                    rgb.g = (argos_rgb_entries[index].g * rgb_matrix_get_val()) / RGB_MATRIX_MAXIMUM_BRIGHTNESS;
+                    rgb.b = (argos_rgb_entries[index].b * rgb_matrix_get_val()) / RGB_MATRIX_MAXIMUM_BRIGHTNESS;
+                    
+                    // clamp, otherwise bugs out at high brightness
+                    if(rgb.r > RGB_MATRIX_MAXIMUM_BRIGHTNESS - 40) rgb.r = RGB_MATRIX_MAXIMUM_BRIGHTNESS - 40;
+                    if(rgb.g > RGB_MATRIX_MAXIMUM_BRIGHTNESS - 40) rgb.g = RGB_MATRIX_MAXIMUM_BRIGHTNESS - 40;
+                    if(rgb.b > RGB_MATRIX_MAXIMUM_BRIGHTNESS - 40) rgb.b = RGB_MATRIX_MAXIMUM_BRIGHTNESS - 40;
+
                     rgb_matrix_set_color(i, rgb.r, rgb.g, rgb.b);
                 }
             } else {
