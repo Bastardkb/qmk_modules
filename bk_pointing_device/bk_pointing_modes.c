@@ -545,8 +545,8 @@ report_mouse_t bkpd_mode_brightness_process(report_mouse_t mouse_report) {
         (buffer_y > 0)? rgb_matrix_decrease_val() : rgb_matrix_increase_val();
         buffer_y = 0;
     }
-    return mouse_report;
 #endif
+    return mouse_report;
 }
 
 /* -----------------------------------------------------------------------------
