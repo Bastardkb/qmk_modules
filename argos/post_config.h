@@ -15,7 +15,7 @@
 
 // increase layer amount
 #ifdef DYNAMIC_KEYMAP_LAYER_COUNT
-#undef DYNAMIC_KEYMAP_LAYER_COUNT
+#    undef DYNAMIC_KEYMAP_LAYER_COUNT
 #endif
 #define DYNAMIC_KEYMAP_LAYER_COUNT 8
 
@@ -23,11 +23,11 @@
 // TODO cirque configuration
 // TODO later switch to per-module eeprom management
 #ifdef BK_HAS_POINTING_DEVICE
-#define ARGOS_SIZE_POINTER_CONFIG 12 // a bit extra just in case
-#define ARGOS_OFFSET_POINTER_CONFIG 0
-#define ARGOS_OFFSET_CONFIG (ARGOS_OFFSET_POINTER_CONFIG + ARGOS_SIZE_POINTER_CONFIG)
+#    define ARGOS_SIZE_POINTER_CONFIG 200 // a lot extra just in case... we also store pointer modes configs
+#    define ARGOS_OFFSET_POINTER_CONFIG 0
+#    define ARGOS_OFFSET_CONFIG (ARGOS_OFFSET_POINTER_CONFIG + ARGOS_SIZE_POINTER_CONFIG)
 #else
-#define ARGOS_OFFSET_CONFIG 0
+#    define ARGOS_OFFSET_CONFIG 0
 #endif
 
 #define ARGOS_SIZE_CONFIG 7
@@ -43,25 +43,18 @@
 #define ARGOS_SIZE_TAP_DANCES (ARGOS_TAP_DANCE_ENTRIES * ARGOS_SIZE_TAP_DANCE)
 
 #define ARGOS_OFFSET_RGB_MATRIX (ARGOS_OFFSET_TAP_DANCE + ARGOS_SIZE_TAP_DANCES)
-#if defined(POINTING_DEVICE_DRIVER_digitizer) || defined(POINTING_DEVICE_DRIVER_cirque_pinnacle_spi)
-// TODO manage dilemma trackball
-// dilemma, with underglow
-// TODO: we use too many LEDs, as the thumb cluster row is usually not fully used.
-#define RGB_ENTRIES_PER_LAYER MATRIX_COLS*MATRIX_ROWS*2
-#else
-// others, no underglow
-#define RGB_ENTRIES_PER_LAYER MATRIX_COLS*MATRIX_ROWS
+
+#ifndef RGBLIGHT_LED_COUNT
+// fail compilation
+#    error "RGBLIGHT_LED_COUNT is not defined"
 #endif
+
 // TODO remove hardcoded 10 layers max value
-#define ARGOS_RGB_MATRIX_ENTRIES RGB_ENTRIES_PER_LAYER*10 // up to 10 layers supported
+#define ARGOS_RGB_MATRIX_ENTRIES RGBLIGHT_LED_COUNT * 10 // up to 10 layers supported
 #define ARGOS_SIZE_RGB_MATRIX_KEY_DATA 5
 #define ARGOS_SIZE_RGB_MATRIX_ENTRIES (ARGOS_RGB_MATRIX_ENTRIES * ARGOS_SIZE_RGB_MATRIX_KEY_DATA)
 
-#define ARGOS_EEPROM_SIZE_CALC (\
-    ARGOS_SIZE_CONFIG + \
-    ARGOS_SIZE_COMBOS + \
-    ARGOS_SIZE_TAP_DANCES + \
-    ARGOS_SIZE_RGB_MATRIX_ENTRIES)
+#define ARGOS_EEPROM_SIZE_CALC (ARGOS_SIZE_CONFIG + ARGOS_SIZE_COMBOS + ARGOS_SIZE_TAP_DANCES + ARGOS_SIZE_RGB_MATRIX_ENTRIES)
 
 // Reduce max address for dynamic keymap to ensure we don't overlap with Argos' EEPROM storage
 // much easier than trying to set the start address.
@@ -72,4 +65,4 @@
 // Here, it will be very big. This could cause issues with wear, since re-writing a macro
 //    actually re-writes the whole macro space.
 // So instead we define a smaller space manually.
-#define DYNAMIC_KEYMAP_MACRO_EEPROM_SIZE 16*512
+#define DYNAMIC_KEYMAP_MACRO_EEPROM_SIZE 16 * 512

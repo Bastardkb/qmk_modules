@@ -1,6 +1,20 @@
+/*
+ * Copyright 2026 Quentin LEBASTARD <bstkbd@gmail.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Publicw License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
-// Copyright 2026 Quentin LEBASTARD <bstkbd@gmail.com>
-// SPDX-License-Identifier: GPL-2.0-or-later
 #include QMK_KEYBOARD_H
 
 #include "argos.h"
@@ -11,6 +25,7 @@
 #include "eeconfig.h"
 #include "eeprom.h"
 #include "keymap_introspection.h"
+#include "introspection.h"
 #include "nvm_eeprom_eeconfig_internal.h"
 #include "nvm_eeprom_via_internal.h"
 #include "print.h"
@@ -34,6 +49,10 @@ ASSERT_COMMUNITY_MODULES_MIN_API_VERSION(1, 0, 0);
 
 // Whether we are capturing keycodes (testing keymap)
 bool capturing_all_keycodes = false;
+
+// used for exclusive layers
+bool hold_layer = false;
+layer_state_t LO_layer_state = 0;
 
 // Magic keycode override
 uint16_t g_argos_magic_keycode_override = 0;
@@ -380,13 +399,9 @@ bool argos_handle_command(uint8_t *data, uint8_t length) {
     }
 
 #ifdef BK_HAS_POINTING_DEVICE
-    case argos_id_set_sniping_dpi:
-    case argos_id_set_dpi:
-    case argos_id_set_auto_mouse_layer_enabled:
-    case argos_id_set_auto_precision_on_mouse_layer_enabled:
-    case argos_id_set_axis_invert:
-    case argos_id_get_pointing_device_info: {
-        send_data = bkpd_dispatch_command(*command_id, &command_data);
+    case argos_id_pointer: {
+        send_data = bkpd_dispatch_command(command_id, command_data);
+   
         break;
     }
 
@@ -421,7 +436,18 @@ bool process_record_argos(uint16_t keycode, keyrecord_t *record) {
     if (captured) {
         return false; // we captured a keycode, no need to process further
     }
+
     return true;
+}
+
+// process special layer keycodes
+layer_state_t layer_state_set_argos(layer_state_t state) {
+    // if we are holding a "this layer only" keycode, pressing any other layer key will be cancelled.
+    // we only allow the process_record function to release the layer.
+    if (hold_layer) {
+        return LO_layer_state;
+    }
+    return state;
 }
 
 /*
