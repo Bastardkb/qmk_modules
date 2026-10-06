@@ -20,7 +20,7 @@
 #define DYNAMIC_KEYMAP_LAYER_COUNT 8
 
 // First, so enabling it leaves everything after it at the same EEPROM address.
-#ifdef BK_HAS_LED_MATRIX
+#ifdef COMMUNITY_MODULE_BK_LED_MATRIX_ENABLE
 #    define ARGOS_SIZE_LED_MATRIX_CONFIG 8
 #else
 #    define ARGOS_SIZE_LED_MATRIX_CONFIG 0
