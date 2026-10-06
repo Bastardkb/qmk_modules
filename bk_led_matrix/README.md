@@ -28,6 +28,19 @@ layers without one show the layer stack.
 |:-:|:-:|:-:|:-:|:-:|:-:|
 | ![](docs/layer_fun.gif) | ![](docs/layer_nav.gif) | ![](docs/layer_media.gif) | ![](docs/layer_ptr.gif) | ![](docs/layer_num.gif) | ![](docs/layer_sym.gif) |
 
+## Pointer modes
+
+Drag-scroll and sniping are animated; cursor, brightness, zoom, volume, tab
+switch, history and custom 1–5 show an icon.
+
+| Drag-scroll | Sniping |
+|:-:|:-:|
+| ![](docs/dragscroll.gif) | ![](docs/sniping.gif) |
+
+- Drag-scroll: a scroll wheel that turns a notch per scroll step; sideways
+  scrolling lights a chevron on that side.
+- Sniping: a scope that tracks a target the ball moves.
+
 ## Setup
 
 ```c

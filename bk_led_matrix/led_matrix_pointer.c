@@ -6,6 +6,7 @@
 
 #include "led_matrix_pointer.h"
 #include "led_matrix.h"
+#include "led_matrix_pointer_anims.h"
 
 #ifdef COMMUNITY_MODULE_BK_POINTING_DEVICE_ENABLE
 #    include "bk_pointing_device.h"
@@ -19,8 +20,6 @@
  * Unspecified slots stay NULL: Normal has no pictogram and falls through.
  */
 static const led_matrix_icon_t *const bklm_icon_by_mode[] = {
-    [MODE_SNIPING]    = &led_matrix_icon_sniping,
-    [MODE_DRAGSCROLL] = &led_matrix_icon_dragscroll,
     [MODE_CURSOR]     = &led_matrix_icon_cursor,
     [MODE_BRIGHTNESS] = &led_matrix_icon_brightness,
     [MODE_ZOOM]       = &led_matrix_icon_zoom,
@@ -75,13 +74,17 @@ static void bklm_draw_icon(RGB *pixels, const led_matrix_icon_t *icon) {
 }
 #endif
 
-/* Active pointing pictogram, centered in the well.
+/* The active pointing mode: an animation for drag-scroll and sniping, otherwise
+ * its pictogram centered in the well.
  * Returns false when pixels is NULL, pointing is not built in, or the mode has no picture. */
 bool bklm_pointer_paint(RGB *pixels) {
     if (pixels == NULL) {
         return false;
     }
 #ifdef COMMUNITY_MODULE_BK_POINTING_DEVICE_ENABLE
+    if (bklm_pointer_anim_paint(pixels, bklm_pointer_mode())) {
+        return true;
+    }
     const led_matrix_icon_t *icon = bklm_pointer_resolve_icon(bklm_pointer_mode());
     if (icon == NULL) {
         return false;

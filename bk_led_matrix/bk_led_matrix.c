@@ -11,6 +11,7 @@
 #include "led_matrix_pointer.h"
 #include "led_matrix_motion.h"
 #include "led_matrix_layer_anims.h"
+#include "led_matrix_pointer_anims.h"
 #include "transactions.h"
 #include "introspection.h"
 #ifdef COMMUNITY_MODULE_BK_POINTING_DEVICE_ENABLE
@@ -57,17 +58,27 @@ typedef struct __attribute__((packed)) {
 
 static int32_t bklm_motion_x, bklm_motion_y; /* USB half: not yet delivered */
 
+static void bklm_feed(int16_t dx, int16_t dy) {
+    bklm_motion_feed(dx, dy);
+    bklm_pointer_anim_feed(dx, dy);
+}
+
 /* Only the USB half sees pointer reports. Feed the animation directly when that is
  * also the panel half, otherwise batch the motion for the sync. */
 report_mouse_t pointing_device_task_bk_led_matrix(report_mouse_t mouse_report) {
-    if (mouse_report.x != 0 || mouse_report.y != 0) {
+    int16_t dx = mouse_report.x, dy = mouse_report.y;
+    if (dx == 0 && dy == 0) { /* drag-scroll: the motion arrives as scroll steps */
+        dx = (int16_t)(mouse_report.h * BKLM_SCROLL_STEP);
+        dy = (int16_t)(mouse_report.v * BKLM_SCROLL_STEP);
+    }
+    if (dx != 0 || dy != 0) {
         bklm_last_input_ms = timer_read32();
         bklm_activity++;
         if (is_keyboard_left() == (LED_MATRIX_MODULE_ON_LEFT != 0)) {
-            bklm_motion_feed(mouse_report.x, mouse_report.y);
+            bklm_feed(dx, dy);
         } else {
-            bklm_motion_x += mouse_report.x;
-            bklm_motion_y += mouse_report.y;
+            bklm_motion_x += dx;
+            bklm_motion_y += dy;
         }
     }
     return mouse_report;
@@ -98,7 +109,7 @@ static void bklm_sync_handler(uint8_t in_len, const void *in_data, uint8_t out_l
             last_activity      = msg->activity;
             bklm_last_input_ms = timer_read32();
         }
-        bklm_motion_feed(msg->dx, msg->dy);
+        bklm_feed(msg->dx, msg->dy);
     }
 }
 
@@ -206,7 +217,8 @@ void housekeeping_task_bk_led_matrix(void) {
     strip_powered = true;
     bklm_set_idle_brightness_divisor(idle_ms >= LED_MATRIX_MODULE_DIM_MS ? 2 : 1);
 
-    if (timer_elapsed32(last_update) < (bklm_motion_active() ? LED_MATRIX_MODULE_MOTION_REFRESH_MS : LED_MATRIX_MODULE_REFRESH_MS)) {
+    const bool fast = bklm_motion_active() || bklm_pointer_anim_active(bklm_pointer_mode());
+    if (timer_elapsed32(last_update) < (fast ? LED_MATRIX_MODULE_MOTION_REFRESH_MS : LED_MATRIX_MODULE_REFRESH_MS)) {
         return;
     }
     last_update = timer_read32();
