@@ -165,11 +165,19 @@ void keyboard_post_init_bk_led_matrix(void) {
  * layering them would only cut holes in one another. The duck is last because
  * it is the resting state, not an indicator.
  *
- * A trackball animation goes after the modifiers while the ball moves; when it
- * idles (LED_MATRIX_MODULE_MOTION_IDLE) it goes behind the layer animation or
- * stack instead, in the duck's place. */
+ * The trackball animation goes behind the layer animation or stack, so a held
+ * layer keeps showing while the ball moves, and takes the duck's place. The
+ * exception is the auto-mouse layer, which rolling the ball switches on. */
 
 static bool strip_powered = true;
+
+static bool bklm_rolling_on_mouse_layer(void) {
+#ifdef AUTO_MOUSE_DEFAULT_LAYER
+    return bklm_motion_moving() && get_highest_layer(layer_state) == AUTO_MOUSE_DEFAULT_LAYER;
+#else
+    return false;
+#endif
+}
 
 void housekeeping_task_bk_led_matrix(void) {
     static uint32_t last_update = 0;
@@ -207,9 +215,9 @@ void housekeeping_task_bk_led_matrix(void) {
     if (bklm_motion_previewing()) {
         bklm_draw_motion(frame);
     } else if (!bklm_pointer_paint(frame) && !bklm_draw_active_modifier_names(frame)) {
-        if (bklm_motion_moving()) {
+        if (bklm_rolling_on_mouse_layer()) {
             bklm_draw_motion(frame);
-        } else if (!bklm_draw_layer_anim(frame) && !bklm_draw_layer_stack(frame) && !bklm_draw_motion(frame)) {
+        } else if (!bklm_draw_layer_anim(frame) && !bklm_draw_layer_stack(frame) && !bklm_draw_motion(frame) && !bklm_motion_moving()) {
             bklm_draw_swimming_duck(frame);
         }
     }

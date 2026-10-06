@@ -20,8 +20,9 @@ ones follow the trackball; all keep running while the ball is still.
 
 ## Layer animations
 
-Shown while a layer is held. The keymap picks one per layer with
-`bklm_layer_anim_user()`; layers without one show the layer stack.
+Shown while a layer is held, also while the ball moves, except on the
+auto-mouse layer. The keymap picks one per layer with `bklm_layer_anim_user()`;
+layers without one show the layer stack.
 
 | Gear | Nav arrow | Equaliser | Hand | Digit | Math |
 |:-:|:-:|:-:|:-:|:-:|:-:|
