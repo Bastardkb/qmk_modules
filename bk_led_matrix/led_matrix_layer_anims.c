@@ -12,7 +12,28 @@
  * Char art below is row 0 = top, '#' = lit; bklm_top() converts to panel rows.
  */
 
+ // TODO this will only work for the Dilemma 3x5, later add Dilemma 4x6
 __attribute__((weak)) uint8_t bklm_layer_anim_user(uint8_t layer) {
+    switch (PRODUCT_ID){
+        case 0x1836: // dilemma 3x5 trackball
+        switch(layer) {
+            case 1:   return BKLM_LAYER_ANIM_GEAR;
+            case 2: return BKLM_LAYER_ANIM_NAVARROW;
+            case 3:      return BKLM_LAYER_ANIM_EQUALIZER;
+            case 4:    return BKLM_LAYER_ANIM_HAND;
+            case 5:    return BKLM_LAYER_ANIM_DIGIT;
+            case 6:    return BKLM_LAYER_ANIM_MATH;
+            default:               return BKLM_LAYER_ANIM_NONE;
+        }
+        break;
+        case 0x1837: // dilemma 4x6 trackball
+        // TODO
+            return BKLM_LAYER_ANIM_NONE;
+        break;
+        default:
+            return BKLM_LAYER_ANIM_NONE;
+            break;
+    }
     return BKLM_LAYER_ANIM_NONE;
 }
 
