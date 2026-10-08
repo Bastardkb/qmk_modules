@@ -19,15 +19,23 @@
 #endif
 #define DYNAMIC_KEYMAP_LAYER_COUNT 8
 
+// First, so enabling it leaves everything after it at the same EEPROM address.
+#ifdef COMMUNITY_MODULE_BK_LED_MATRIX_ENABLE
+#    define ARGOS_SIZE_LED_MATRIX_CONFIG 8
+#else
+#    define ARGOS_SIZE_LED_MATRIX_CONFIG 0
+#endif
+#define ARGOS_OFFSET_LED_MATRIX_CONFIG 0
+
 // Do we have a pointing device? Then we want to save some memory for it.
 // TODO cirque configuration
 // TODO later switch to per-module eeprom management
 #ifdef BK_HAS_POINTING_DEVICE
 #    define ARGOS_SIZE_POINTER_CONFIG 200 // a lot extra just in case... we also store pointer modes configs
-#    define ARGOS_OFFSET_POINTER_CONFIG 0
+#    define ARGOS_OFFSET_POINTER_CONFIG (ARGOS_OFFSET_LED_MATRIX_CONFIG + ARGOS_SIZE_LED_MATRIX_CONFIG)
 #    define ARGOS_OFFSET_CONFIG (ARGOS_OFFSET_POINTER_CONFIG + ARGOS_SIZE_POINTER_CONFIG)
 #else
-#    define ARGOS_OFFSET_CONFIG 0
+#    define ARGOS_OFFSET_CONFIG (ARGOS_OFFSET_LED_MATRIX_CONFIG + ARGOS_SIZE_LED_MATRIX_CONFIG)
 #endif
 
 #define ARGOS_SIZE_CONFIG 7
@@ -54,7 +62,7 @@
 #define ARGOS_SIZE_RGB_MATRIX_KEY_DATA 5
 #define ARGOS_SIZE_RGB_MATRIX_ENTRIES (ARGOS_RGB_MATRIX_ENTRIES * ARGOS_SIZE_RGB_MATRIX_KEY_DATA)
 
-#define ARGOS_EEPROM_SIZE_CALC (ARGOS_SIZE_CONFIG + ARGOS_SIZE_COMBOS + ARGOS_SIZE_TAP_DANCES + ARGOS_SIZE_RGB_MATRIX_ENTRIES)
+#define ARGOS_EEPROM_SIZE_CALC (ARGOS_SIZE_CONFIG + ARGOS_SIZE_LED_MATRIX_CONFIG + ARGOS_SIZE_COMBOS + ARGOS_SIZE_TAP_DANCES + ARGOS_SIZE_RGB_MATRIX_ENTRIES)
 
 // Reduce max address for dynamic keymap to ensure we don't overlap with Argos' EEPROM storage
 // much easier than trying to set the start address.

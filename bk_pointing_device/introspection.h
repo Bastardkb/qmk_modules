@@ -43,3 +43,5 @@
 #define INVX 0x7E1E
 #define INVY 0x7E1F
 #define PMODE_LAST 0x7E20 // used only for determining mouse keys, keep last
+// 0x7E21 reserved for led matrix
+// 0x7E22 left empty for mode logic
