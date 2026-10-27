@@ -130,17 +130,28 @@ bool bkpd_dispatch_command(uint8_t *command_id, uint8_t *command_data) {
                 break;
             }
             case argos_id_pointer_command_id_set_custom_mode: {
-                printf("set custom mode, id=%d\n", command_data[0]);
                 uint8_t mode_id = command_data[0];
                 uint8_t *mode_config = &(command_data[1]);
                 bkpd_custom_mode_set_keys(mode_id, mode_config);
                 break;
             }
             case argos_id_pointer_command_id_set_activate_on_layer: {
-                printf("set activate on layer, mode_id: %d, activate_on_layer: %d\n", command_data[0], command_data[1]);
                 uint8_t mode_id = command_data[0];
                 uint8_t activate_on_layer = command_data[1];
                 bkpd_mode_set_activate_on_layer(mode_id, activate_on_layer);
+                break;
+            }
+            case argos_id_pointer_command_id_get_auto_mouse_time: {
+                uint16_t auto_mouse_time = g_bkpd_config.auto_mouse_time;
+                command_data[0] = (auto_mouse_time >> 8) & 0xFF;
+                command_data[1] = auto_mouse_time & 0xFF;
+                break;
+            }
+            case argos_id_pointer_command_id_set_auto_mouse_time: {
+                uint16_t auto_mouse_time = ((uint16_t)command_data[0] << 8) | command_data[1];
+                g_bkpd_config.auto_mouse_time = auto_mouse_time;
+                set_auto_mouse_timeout(auto_mouse_time);
+                write_bkpd_config_to_eeprom();
                 break;
             }
             default:

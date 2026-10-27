@@ -37,6 +37,35 @@ void argos_rgb_load_from_eeprom(void) {
     argos_read_eeprom(ARGOS_OFFSET_RGB_MATRIX, argos_rgb_entries, sizeof(argos_rgb_entries));
 }
 
+/*
+    Custom function to clamp the CAPS lock RED light
+    On some devices, too high brightness can brick the keyboard
+*/
+void argos_rgb_caps_lock_indicator_enable(uint8_t led_min, uint8_t led_max){
+
+    for (int i = led_min; i < led_max; i++) {
+        rgb_t rgb = {0, 0, 0};
+        rgb.r     = (255 * rgb_matrix_get_val()) / RGB_MATRIX_MAXIMUM_BRIGHTNESS;
+        rgb.g     = 0;
+        rgb.b     = 0;
+
+        // TODO duplicate code
+
+        uint8_t clamp_reduce_bright = rgb_matrix_get_val() - 40;
+
+        if(RGBLIGHT_LED_COUNT > 58){
+            clamp_reduce_bright -= 40; // further reduce brightness because of underglow
+        }
+        
+        rgb.r     = (rgb.r * clamp_reduce_bright) / RGB_MATRIX_MAXIMUM_BRIGHTNESS;
+        rgb.g     = (rgb.g * clamp_reduce_bright) / RGB_MATRIX_MAXIMUM_BRIGHTNESS;
+        rgb.b     = (rgb.b * clamp_reduce_bright) / RGB_MATRIX_MAXIMUM_BRIGHTNESS;
+
+
+        rgb_matrix_set_color(i, rgb.r, rgb.g, rgb.b);
+    }
+}
+
 // Layer state indicator
 bool rgb_matrix_indicators_advanced_argos(uint8_t led_min, uint8_t led_max) {
 #    ifdef COMMUNITY_MODULE_BK_POINTING_DEVICE_ENABLE
@@ -52,11 +81,11 @@ bool rgb_matrix_indicators_advanced_argos(uint8_t led_min, uint8_t led_max) {
 
     // caps locks
     if (host_keyboard_led_state().caps_lock == true) {
-        rgb_matrix_set_color_all(RGB_RED);
+        argos_rgb_caps_lock_indicator_enable(led_min, led_max);
         return true;
     }
 
-    const uint8_t  layer     = get_highest_layer(layer_state);
+    const uint8_t  layer = get_highest_layer(layer_state | default_layer_state);
     const uint16_t min_index = layer * RGBLIGHT_LED_COUNT;
 
     for (int i = led_min; i < led_max; i++) {
@@ -65,14 +94,16 @@ bool rgb_matrix_indicators_advanced_argos(uint8_t led_min, uint8_t led_max) {
             if (argos_rgb_entries[index].on) {
                 if (argos_rgb_entries[index].passthrough == false) {
                     rgb_t rgb = {0, 0, 0};
-                    rgb.r     = (argos_rgb_entries[index].r * rgb_matrix_get_val()) / RGB_MATRIX_MAXIMUM_BRIGHTNESS;
-                    rgb.g     = (argos_rgb_entries[index].g * rgb_matrix_get_val()) / RGB_MATRIX_MAXIMUM_BRIGHTNESS;
-                    rgb.b     = (argos_rgb_entries[index].b * rgb_matrix_get_val()) / RGB_MATRIX_MAXIMUM_BRIGHTNESS;
 
-                    // clamp, otherwise bugs out at high brightness
-                    if(rgb.r > RGB_MATRIX_MAXIMUM_BRIGHTNESS - 40) rgb.r = RGB_MATRIX_MAXIMUM_BRIGHTNESS - 40;
-                    if(rgb.g > RGB_MATRIX_MAXIMUM_BRIGHTNESS - 40) rgb.g = RGB_MATRIX_MAXIMUM_BRIGHTNESS - 40;
-                    if(rgb.b > RGB_MATRIX_MAXIMUM_BRIGHTNESS - 40) rgb.b = RGB_MATRIX_MAXIMUM_BRIGHTNESS - 40;
+                    uint8_t clamp_reduce_bright = rgb_matrix_get_val() - 40;
+
+                    if(RGBLIGHT_LED_COUNT > 58){
+                        clamp_reduce_bright -= 40; // further reduce brightness because of underglow
+                    }
+                    
+                    rgb.r     = (argos_rgb_entries[index].r * clamp_reduce_bright) / RGB_MATRIX_MAXIMUM_BRIGHTNESS;
+                    rgb.g     = (argos_rgb_entries[index].g * clamp_reduce_bright) / RGB_MATRIX_MAXIMUM_BRIGHTNESS;
+                    rgb.b     = (argos_rgb_entries[index].b * clamp_reduce_bright) / RGB_MATRIX_MAXIMUM_BRIGHTNESS;
 
                     rgb_matrix_set_color(i, rgb.r, rgb.g, rgb.b);
                 }

@@ -24,8 +24,6 @@ typedef struct {
     uint8_t mode;
 } mode_map_t;
 
-#define BKPD_AMOUNT_CUSTOM_MODES 4
-
  enum {
     MODE_NORMAL = 0,
     MODE_SNIPING = 1,
@@ -43,6 +41,8 @@ typedef struct {
     MODE_CUSTOM5 = 13,
     MODE_LAST = 14
 };
+
+#define BKPD_AMOUNT_CUSTOM_MODES MODE_LAST - MODE_CUSTOM1 // 5 custom modes
 
 void bkpd_mode_set_active(uint8_t id);
 report_mouse_t bkpd_process_active_mode(report_mouse_t mouse_report);

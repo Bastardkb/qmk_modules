@@ -1,14 +1,26 @@
-// Copyright 2026 Quentin LEBASTARD <bstkbd@gmail.com>
-// SPDX-License-Identifier: GPL-2.0-or-later
+/*
+ * Copyright 2026 Quentin LEBASTARD <bstkbd@gmail.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Publicw License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #pragma once
 
-/*
-    Here we do a bit of shenanigans.
-    I can't find a way to dynamically pull the amount of combo entries and size of a combo entry
-    from argos.h, so instead we set it manually.
-    TODO: fix.
-*/
+// #include "bk_pointing_device.h"
+// #include "argos_combo.h"
+// #include "argos_tapdance.h"
+// #include "argos.h"
 
 // for rgb mostly
 #define SPLIT_LAYER_STATE_ENABLE
@@ -28,26 +40,32 @@
 #define ARGOS_OFFSET_LED_MATRIX_CONFIG 0
 
 // Do we have a pointing device? Then we want to save some memory for it.
-// TODO cirque configuration
-// TODO later switch to per-module eeprom management
 #ifdef BK_HAS_POINTING_DEVICE
-#    define ARGOS_SIZE_POINTER_CONFIG 200 // a lot extra just in case... we also store pointer modes configs
+#    define ARGOS_SIZE_POINTER_CONFIG 142
 #    define ARGOS_OFFSET_POINTER_CONFIG (ARGOS_OFFSET_LED_MATRIX_CONFIG + ARGOS_SIZE_LED_MATRIX_CONFIG)
 #    define ARGOS_OFFSET_CONFIG (ARGOS_OFFSET_POINTER_CONFIG + ARGOS_SIZE_POINTER_CONFIG)
+// _Static_assert(sizeof(bkpd_config_t) == ARGOS_SIZE_POINTER_CONFIG, "Pointer config size does not match expected size");
 #else
+#    define ARGOS_SIZE_POINTER_CONFIG 0
 #    define ARGOS_OFFSET_CONFIG (ARGOS_OFFSET_LED_MATRIX_CONFIG + ARGOS_SIZE_LED_MATRIX_CONFIG)
 #endif
 
-#define ARGOS_SIZE_CONFIG 7
+#define ARGOS_SIZE_CONFIG 11 // manually sync with argos.h
+// _Static_assert(sizeof(argos_config_t) == ARGOS_SIZE_CONFIG, "Invalid size for argos_config_t");
 
 #define ARGOS_OFFSET_COMBO (ARGOS_OFFSET_CONFIG + ARGOS_SIZE_CONFIG)
-#define ARGOS_COMBO_ENTRIES 16 // this was already defined in argos.h, TODO fix this hardcoding...
-#define ARGOS_SIZE_COMBO 13
+#define ARGOS_COMBO_ENTRIES 24 // this was already defined in argos.h, TODO fix this hardcoding...
+#define ARGOS_SIZE_COMBO 12
+
+// If we modify the structure, we also need to modify its size in post_config.h
+// _Static_assert(sizeof(argos_combo_t) == ARGOS_SIZE_COMBO, "Invalid size for argos_combo_t"); // this seems to big, change to 7 or 8?
+
 #define ARGOS_SIZE_COMBOS (ARGOS_COMBO_ENTRIES * ARGOS_SIZE_COMBO)
 
 #define ARGOS_OFFSET_TAP_DANCE (ARGOS_OFFSET_COMBO + ARGOS_SIZE_COMBOS)
 #define ARGOS_TAP_DANCE_ENTRIES 50 // should be enough for anyone
 #define ARGOS_SIZE_TAP_DANCE 11
+// _Static_assert(sizeof(argos_td_entry_t) == ARGOS_SIZE_TAP_DANCE, "Invalid size for argos_td_entry_t");
 #define ARGOS_SIZE_TAP_DANCES (ARGOS_TAP_DANCE_ENTRIES * ARGOS_SIZE_TAP_DANCE)
 
 #define ARGOS_OFFSET_RGB_MATRIX (ARGOS_OFFSET_TAP_DANCE + ARGOS_SIZE_TAP_DANCES)
@@ -59,10 +77,11 @@
 
 // TODO remove hardcoded 10 layers max value
 #define ARGOS_RGB_MATRIX_ENTRIES RGBLIGHT_LED_COUNT * 10 // up to 10 layers supported
-#define ARGOS_SIZE_RGB_MATRIX_KEY_DATA 5
+#define ARGOS_SIZE_RGB_MATRIX_KEY_DATA 4
+// _Static_assert(sizeof(argos_rgb_t) == ARGOS_SIZE_RGB_MATRIX_KEY_DATA, "Invalid size for argos_rgb_t");
 #define ARGOS_SIZE_RGB_MATRIX_ENTRIES (ARGOS_RGB_MATRIX_ENTRIES * ARGOS_SIZE_RGB_MATRIX_KEY_DATA)
 
-#define ARGOS_EEPROM_SIZE_CALC (ARGOS_SIZE_CONFIG + ARGOS_SIZE_LED_MATRIX_CONFIG + ARGOS_SIZE_COMBOS + ARGOS_SIZE_TAP_DANCES + ARGOS_SIZE_RGB_MATRIX_ENTRIES)
+#define ARGOS_EEPROM_SIZE_CALC (ARGOS_SIZE_CONFIG + ARGOS_SIZE_LED_MATRIX_CONFIG + ARGOS_SIZE_COMBOS + ARGOS_SIZE_TAP_DANCES + ARGOS_SIZE_RGB_MATRIX_ENTRIES + ARGOS_SIZE_POINTER_CONFIG)
 
 // Reduce max address for dynamic keymap to ensure we don't overlap with Argos' EEPROM storage
 // much easier than trying to set the start address.

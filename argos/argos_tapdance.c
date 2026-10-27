@@ -9,14 +9,7 @@ static uint8_t dance_state[ARGOS_TAP_DANCE_ENTRIES];
 // Storage for Argos tap dances
 static tap_dance_action_t argos_td_tap_actions[ARGOS_TAP_DANCE_ENTRIES];
 
-// TODO have this also as an array of entries?
-// static argos_td_entry_t td_entry;
-
 static argos_td_entry_t argos_td_entries[ARGOS_TAP_DANCE_ENTRIES];
-
-// Check if tap dance entry is enabled (bit 15 of custom_tapping_term)
-#define TD_ENABLED(entry) ((entry).custom_tapping_term & 0x8000)
-
 
 argos_td_state_t cur_dance(tap_dance_state_t *state) {
     if (state->count == 1) {
@@ -33,6 +26,23 @@ argos_td_state_t cur_dance(tap_dance_state_t *state) {
     }
     // TODO triple hold?
     return TD_UNKNOWN;
+}
+
+// custom timings
+uint16_t get_tapping_term(uint16_t keycode, keyrecord_t* record){
+    // test if keycode is in range
+    if(keycode >= QK_TAP_DANCE && keycode < QK_TAP_DANCE + ARGOS_TAP_DANCE_ENTRIES){
+        uint8_t index = keycode - QK_TAP_DANCE;
+        argos_td_entry_t *entry = argos_tap_dance_get(index);
+        if(entry != NULL){
+            // get the custom tapping term
+            uint16_t custom_term = entry->custom_tapping_term;
+            if(custom_term > 0)
+                return custom_term;
+        }
+    }
+
+    return TAPPING_TERM;
 }
 
 static void on_dance(tap_dance_state_t *state, void *user_data) {
@@ -253,4 +263,15 @@ void argos_tap_dance_set_keycode(uint8_t tap_dance_index, uint16_t keycode,
     
     argos_tap_dance_write_eeprom(tap_dance_index, entry);
     argos_reload_tap_dance(tap_dance_index);
+}
+
+void argos_tap_dance_set_timing(uint16_t timing, uint8_t td_index) {
+    if (td_index >= ARGOS_TAP_DANCE_ENTRIES) return;
+    argos_td_entry_t* entry = argos_tap_dance_get(td_index);
+
+    entry->enabled = true;
+    entry->custom_tapping_term = timing;
+
+    argos_tap_dance_write_eeprom(td_index, entry);
+    argos_reload_tap_dance(td_index);
 }

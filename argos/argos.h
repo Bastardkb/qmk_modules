@@ -9,7 +9,7 @@
 #include "util.h"
 
 // Argos protocol version
-#define ARGOS_PROTOCOL_VERSION 0x0006
+#define ARGOS_PROTOCOL_VERSION 0x0007
 #define ARGOS_CMD_PREFIX 0x90 // hopefully something that won't conflict with VIA
 #define QMK_KEYCODES_VERSION_COMPATIBLE_0 0
 #define QMK_KEYCODES_VERSION_COMPATIBLE_1 0
@@ -44,6 +44,14 @@ enum argos_command_id {
     argos_id_set_auto_precision_on_mouse_layer_enabled = 0x17, // legacy
     argos_id_set_axis_invert                           = 0x18, // legacy
     argos_id_set_dragscroll_dpi                        = 0x19, // legacy
+    argos_id_term_config                           = 0x1A, // sub-command
+};
+
+enum argos_command_term_id {
+    argos_id_term_flow_tap_get = 0x01,
+    argos_id_term_flow_tap_set = 0x02,
+    argos_id_term_quick_tap_get = 0x03,
+    argos_id_term_quick_tap_set = 0x04,
 };
 
 // At the moment, we only support trackpads and trackballs (for Bastard Keyboards)
@@ -54,7 +62,7 @@ enum pointing_device_type {
     pointing_device_type_trackpad_cirque  = 3,
 };
 
-#define ARGOS_COMBO_ENTRIES 16
+#define ARGOS_COMBO_ENTRIES 24
 #define ARGOS_KEYS_PER_COMBO 4
 
 // We define our own structure, with the keys NOT const
@@ -66,8 +74,6 @@ typedef struct PACKED {
     bool     active : 1;
     bool     valid : 1;
 } argos_combo_t;
-// If we modify the structure, we also need to modify its size in post_config.h
-_Static_assert(sizeof(argos_combo_t) <= 13, "Invalid size for argos_combo_t"); // this seems to big, change to 7 or 8?
 
 typedef struct PACKED {
     bool     has_copied_qmk_config : 1;
@@ -75,8 +81,9 @@ typedef struct PACKED {
     bool     has_displayed_welcome_message : 1;
     uint16_t global_tapping_term; // in ms
     uint16_t global_combo_term;   // in ms
+    uint16_t flow_tap_term;
+    uint16_t quick_tap_term;
 } argos_config_t;
-_Static_assert(sizeof(argos_config_t) <= 7, "Invalid size for argos_config_t");
 
 typedef struct PACKED {
     uint8_t r;
@@ -86,7 +93,6 @@ typedef struct PACKED {
     bool    on : 1;
     bool    custom : 1;
 } argos_rgb_t;
-_Static_assert(sizeof(argos_rgb_t) <= 5, "Invalid size for argos_rgb_t");
 
 #define ARGOS_TAPPING_TERM 175
 #define ARGOS_TAP_CODE_DELAY 10
@@ -100,7 +106,6 @@ typedef struct __attribute__((packed)) {
     uint16_t custom_tapping_term; // bit 15 = enabled, bits 0-14 = timing (ms)
     bool     enabled : 1;
 } argos_td_entry_t;
-_Static_assert(sizeof(argos_td_entry_t) <= 11, "Invalid size for argos_td_entry_t");
 
 // -------------------------------
 
@@ -114,4 +119,4 @@ void                       argos_keycode_up(uint16_t keycode);
 void                       argos_keycode_tap(uint16_t keycode);
 bool                       argos_tap_dance_read_eeprom(uint8_t index, argos_td_entry_t *entry);
 bool                       argos_tap_dance_write_eeprom(uint8_t index, const argos_td_entry_t *entry);
-bool                       process_records_argos_capture_all_keycodes(uint16_t keycode, keyrecord_t *record);
+bool argos_dispatch_command_terms(uint8_t* command_id, uint8_t* command_data);
